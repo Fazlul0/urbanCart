@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-black: #111111;
+  --color-brand-gold: #C9A227;
+  --color-brand-gold-light: #E8D48B;
+  --color-brand-gold-dark: #A68520;
+  --color-brand-cream: #FAFAF8;
+  --color-brand-muted: #6B6B6B;
+  --color-brand-border: #E8E6E1;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Outfit", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-brand-black);
+  background: var(--color-brand-cream);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+::-webkit-scrollbar-thumb {
+  background: #C9A227;
+  border-radius: 4px;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 bg-brand-gold text-brand-black font-medium px-6 py-3 rounded-xl transition-all duration-300 hover:bg-brand-gold-light hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 border-2 border-brand-black text-brand-black font-medium px-6 py-3 rounded-xl transition-all duration-300 hover:bg-brand-black hover:text-white disabled:opacity-50;
+}
+
+.btn-dark {
+  @apply inline-flex items-center justify-center gap-2 bg-brand-black text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 hover:bg-neutral-800 hover:shadow-lg disabled:opacity-50;
+}
+
+.input-field {
+  @apply w-full px-4 py-3 rounded-xl border border-brand-border bg-white text-brand-black placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-gold/40 focus:border-brand-gold transition;
+}
+
+.section-pad {
+  @apply px-4 sm:px-6 lg:px-8 py-16 md:py-24;
+}
+
+.container-uc {
+  @apply max-w-7xl mx-auto;
+}

@@ -1,0 +1,19 @@
+{
+  "name": "urbancart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UrbanCart — Cloudflare Workers + D1 + Pages E-Commerce",
+  "scripts": {
+    "install:all": "npm install --prefix worker && npm install --prefix client && npm install --prefix admin",
+    "dev:api": "npm run dev --prefix worker",
+    "dev:client": "npm run dev --prefix client",
+    "dev:admin": "npm run dev --prefix admin",
+    "db:migrate:local": "npm run db:migrate:local --prefix worker",
+    "db:seed:local": "curl -X POST http://localhost:8787/api/dev/seed",
+    "deploy:api": "npm run deploy --prefix worker",
+    "build:client": "VITE_API_URL=https://urbancart-api.fazlulkarim362.workers.dev/api npm run build --prefix client",
+    "build:admin": "VITE_API_URL=https://urbancart-api.fazlulkarim362.workers.dev/api npm run build --prefix admin",
+    "deploy:client": "npm run build:client && CLOUDFLARE_ACCOUNT_ID=afeeea28ef4b58aad33f54322feaab68 npx wrangler pages deploy client/dist --project-name=urbancart --commit-dirty=true",
+    "deploy:admin": "npm run build:admin && CLOUDFLARE_ACCOUNT_ID=afeeea28ef4b58aad33f54322feaab68 npx wrangler pages deploy admin/dist --project-name=urbancart-admin --commit-dirty=true"
+  }
+}

@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-black: #111111;
+  --color-brand-gold: #C9A227;
+  --color-brand-gold-light: #E8D48B;
+  --color-sidebar: #0c0c0c;
+  --font-sans: "Outfit", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: #f5f5f4;
+  color: #111;
+  -webkit-font-smoothing: antialiased;
+}
+
+.input-field {
+  @apply w-full px-3 py-2.5 rounded-lg border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40 focus:border-brand-gold;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 bg-brand-gold text-brand-black font-medium px-4 py-2.5 rounded-lg text-sm hover:bg-brand-gold-light transition disabled:opacity-50;
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 bg-red-600 text-white font-medium px-4 py-2.5 rounded-lg text-sm hover:bg-red-700 transition disabled:opacity-50;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 border border-neutral-200 bg-white font-medium px-4 py-2.5 rounded-lg text-sm hover:bg-neutral-50 transition;
+}
+
+.card {
+  @apply bg-white rounded-xl border border-neutral-200 shadow-sm;
+}
