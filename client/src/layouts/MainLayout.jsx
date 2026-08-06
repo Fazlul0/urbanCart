@@ -1,8 +1,9 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import Navbar from '../components/layout/Navbar';
+import MiniHeader from '../components/layout/MiniHeader';
 import Footer from '../components/layout/Footer';
 import ScrollToTop from '../components/ui/ScrollToTop';
+import WhatsAppFloat from '../components/ui/WhatsAppFloat';
 
 const MainLayout = () => {
   const { pathname } = useLocation();
@@ -13,11 +14,12 @@ const MainLayout = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <MiniHeader />
       <main className="flex-1">
         <Outlet />
       </main>
       <Footer />
+      <WhatsAppFloat />
       <ScrollToTop />
     </div>
   );

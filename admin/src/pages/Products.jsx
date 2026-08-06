@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ImageUploader from '../components/ImageUploader';
 import {
   getAdminProducts,
   createProduct,
@@ -19,11 +20,15 @@ const emptyForm = {
   stockQuantity: 0,
   tags: '',
   featured: false,
+  freeDelivery: false,
+  unitType: 'piece',
+  minOrder: 1,
   images: [{ url: '', isThumbnail: true }],
   specifications: '',
 };
 
-const Products = () => {
+const Products = ({ productType = 'general' }) => {
+  const isFood = productType === 'food';
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +41,8 @@ const Products = () => {
     setLoading(true);
     try {
       const [p, c] = await Promise.all([
-        getAdminProducts({ search: q || undefined, limit: 50 }),
-        getCategories(),
+        getAdminProducts({ search: q || undefined, limit: 50, type: productType }),
+        getCategories({ type: productType }),
       ]);
       setProducts(p.data.products);
       setCategories(c.data.categories);
@@ -50,10 +55,15 @@ const Products = () => {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [productType]);
 
   const openCreate = () => {
-    setForm({ ...emptyForm, category: categories[0]?._id || '' });
+    setForm({
+      ...emptyForm,
+      category: categories[0]?._id || '',
+      unitType: isFood ? 'kg' : 'piece',
+      minOrder: isFood ? 0.5 : 1,
+    });
     setModal('create');
   };
 
@@ -78,6 +88,9 @@ const Products = () => {
       stockQuantity: product.stockQuantity,
       tags: (product.tags || []).join(', '),
       featured: product.featured,
+      freeDelivery: !!product.freeDelivery,
+      unitType: product.unitType || 'piece',
+      minOrder: product.minOrder ?? 1,
       images: product.images?.length
         ? product.images
         : [{ url: '', isThumbnail: true }],
@@ -115,6 +128,10 @@ const Products = () => {
           .map((t) => t.trim())
           .filter(Boolean),
         featured: form.featured,
+        freeDelivery: form.freeDelivery,
+        productType,
+        unitType: form.unitType,
+        minOrder: Number(form.minOrder) || 1,
         images: form.images.filter((i) => i.url.trim()),
         specifications: parseSpecs(form.specifications),
       };
@@ -150,11 +167,11 @@ const Products = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold">Products</h2>
+          <h2 className="text-2xl font-semibold">{isFood ? 'Food Products' : 'Products'}</h2>
           <p className="text-sm text-neutral-500">{products.length} products</p>
         </div>
         <button onClick={openCreate} className="btn-primary">
-          <Plus size={16} /> Add Product
+          <Plus size={16} /> {isFood ? 'Add Food Item' : 'Add Product'}
         </button>
       </div>
 
@@ -176,6 +193,7 @@ const Products = () => {
               <th className="px-4 py-3 font-medium">Product</th>
               <th className="px-4 py-3 font-medium">Category</th>
               <th className="px-4 py-3 font-medium">Price</th>
+              {isFood && <th className="px-4 py-3 font-medium">Min / Unit</th>}
               <th className="px-4 py-3 font-medium">Stock</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -184,13 +202,13 @@ const Products = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={isFood ? 7 : 6} className="px-4 py-12 text-center text-neutral-500">
                   Loading...
                 </td>
               </tr>
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={isFood ? 7 : 6} className="px-4 py-12 text-center text-neutral-500">
                   No products
                 </td>
               </tr>
@@ -206,14 +224,29 @@ const Products = () => {
                       />
                       <div>
                         <p className="font-medium line-clamp-1">{p.name}</p>
-                        {p.featured && (
-                          <span className="text-xs text-brand-gold">Featured</span>
-                        )}
+                        <div className="flex gap-2 mt-0.5">
+                          {p.featured && (
+                            <span className="text-xs text-brand-gold">Featured</span>
+                          )}
+                          {p.freeDelivery && (
+                            <span className="text-xs text-green-600">Free delivery</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">{p.category?.name || '—'}</td>
-                  <td className="px-4 py-3 font-medium">{formatBDT(p.price)}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {formatBDT(p.price)}
+                    {isFood && (
+                      <span className="text-xs text-neutral-500"> / {p.unitType || 'piece'}</span>
+                    )}
+                  </td>
+                  {isFood && (
+                    <td className="px-4 py-3 text-xs">
+                      Min {p.minOrder} {p.unitType}
+                    </td>
+                  )}
                   <td className="px-4 py-3">{p.stockQuantity}</td>
                   <td className="px-4 py-3 capitalize text-xs">{p.availability?.replace('_', ' ')}</td>
                   <td className="px-4 py-3">
@@ -320,6 +353,36 @@ const Products = () => {
                   className="input-field"
                 />
               </div>
+              {isFood && (
+                <>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">Unit Type</label>
+                    <select
+                      value={form.unitType}
+                      onChange={(e) => setForm({ ...form, unitType: e.target.value })}
+                      className="input-field"
+                    >
+                      <option value="piece">Piece</option>
+                      <option value="kg">Kilogram (kg)</option>
+                      <option value="g">Gram (g)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium mb-1 block">
+                      Minimum order ({form.unitType})
+                    </label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      value={form.minOrder}
+                      onChange={(e) => setForm({ ...form, minOrder: e.target.value })}
+                      className="input-field"
+                    />
+                  </div>
+                </>
+              )}
               <div className="sm:col-span-2">
                 <label className="text-xs font-medium mb-1 block">Tags (comma separated)</label>
                 <input
@@ -328,37 +391,51 @@ const Products = () => {
                   className="input-field"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <label className="text-xs font-medium mb-1 block">
-                  Image URLs (Cloudinary ready)
-                </label>
+              <div className="sm:col-span-2 space-y-3">
+                <label className="text-xs font-medium block">Product Images (upload files)</label>
                 {form.images.map((img, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input
+                  <div key={i} className="border border-neutral-200 rounded-lg p-3 space-y-2">
+                    <ImageUploader
+                      fit="product"
+                      label={img.url ? 'Replace image' : 'Upload image'}
                       value={img.url}
-                      onChange={(e) => {
+                      onUploaded={(url) => {
                         const images = [...form.images];
-                        images[i] = { ...images[i], url: e.target.value };
+                        images[i] = { ...images[i], url };
                         setForm({ ...form, images });
                       }}
-                      className="input-field"
-                      placeholder="https://..."
                     />
-                    <label className="flex items-center gap-1 text-xs shrink-0">
-                      <input
-                        type="radio"
-                        name="thumb"
-                        checked={img.isThumbnail}
-                        onChange={() => {
-                          const images = form.images.map((im, idx) => ({
-                            ...im,
-                            isThumbnail: idx === i,
-                          }));
-                          setForm({ ...form, images });
-                        }}
-                      />
-                      Thumb
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-1 text-xs">
+                        <input
+                          type="radio"
+                          name="thumb"
+                          checked={img.isThumbnail}
+                          onChange={() => {
+                            const images = form.images.map((im, idx) => ({
+                              ...im,
+                              isThumbnail: idx === i,
+                            }));
+                            setForm({ ...form, images });
+                          }}
+                        />
+                        Main thumbnail
+                      </label>
+                      {form.images.length > 1 && (
+                        <button
+                          type="button"
+                          className="text-xs text-red-600"
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              images: form.images.filter((_, idx) => idx !== i),
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <button
@@ -371,7 +448,7 @@ const Products = () => {
                   }
                   className="text-xs text-brand-gold"
                 >
-                  + Add image URL
+                  + Add another image
                 </button>
               </div>
               <div className="sm:col-span-2">
@@ -393,6 +470,14 @@ const Products = () => {
                   onChange={(e) => setForm({ ...form, featured: e.target.checked })}
                 />
                 Featured Product
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.freeDelivery}
+                  onChange={(e) => setForm({ ...form, freeDelivery: e.target.checked })}
+                />
+                Free delivery for this product
               </label>
             </div>
 

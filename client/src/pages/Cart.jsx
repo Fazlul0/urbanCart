@@ -9,7 +9,7 @@ const Cart = () => {
 
   if (loading) {
     return (
-      <div className="pt-28 min-h-[50vh] flex items-center justify-center">
+      <div className="pt-6 min-h-[50vh] flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -21,7 +21,7 @@ const Cart = () => {
         <Helmet>
           <title>Cart — UrbanCart</title>
         </Helmet>
-        <div className="pt-28 pb-16 text-center">
+        <div className="pt-6 pb-16 text-center">
           <div className="container-uc px-4 py-20">
             <ShoppingBag size={48} className="mx-auto text-brand-muted mb-4" />
             <h1 className="font-display text-3xl mb-2">Your cart is empty</h1>
@@ -40,7 +40,7 @@ const Cart = () => {
       <Helmet>
         <title>Cart — UrbanCart</title>
       </Helmet>
-      <div className="pt-28 pb-16">
+      <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <h1 className="font-display text-4xl">Shopping Cart</h1>
@@ -121,7 +121,11 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-brand-muted">Delivery Charge</span>
-                  <span className="font-medium">{formatBDT(cart.deliveryCharge)}</span>
+                  <span className={`font-medium ${cart.freeDelivery || cart.deliveryCharge === 0 ? 'text-emerald-600' : ''}`}>
+                    {cart.freeDelivery || cart.deliveryCharge === 0
+                      ? 'Free'
+                      : formatBDT(cart.deliveryCharge)}
+                  </span>
                 </div>
                 <div className="border-t border-brand-border pt-3 flex justify-between text-base">
                   <span className="font-semibold">Grand Total</span>

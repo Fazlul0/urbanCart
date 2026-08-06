@@ -22,10 +22,34 @@ export const createProduct = (data) => api.post('/products', data);
 export const updateProduct = (id, data) => api.put(`/products/${id}`, data);
 export const deleteProduct = (id) => api.delete(`/products/${id}`);
 
-export const getCategories = () => api.get('/categories/all');
+export const getCategories = (params) => api.get('/categories/all', { params });
 export const createCategory = (data) => api.post('/categories', data);
 export const updateCategory = (id, data) => api.put(`/categories/${id}`, data);
-export const deleteCategory = (id) => api.delete(`/categories/${id}`);
+export const deleteCategory = (id, force = false) =>
+  api.delete(`/categories/${id}${force ? '?force=true' : ''}`);
+
+export const getMembershipSettings = () => api.get('/membership/settings');
+export const updateMembershipSettings = (data) => api.put('/membership/settings', data);
+
+export const getSiteSettings = () => api.get('/site/settings');
+export const updateSiteSettings = (data) => api.put('/site/settings', data);
+export const getMembershipApplications = (params) =>
+  api.get('/membership/applications', { params });
+export const updateMembershipApplication = (id, data) =>
+  api.put(`/membership/applications/${id}`, data);
+
+export const uploadImage = (file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post('/media/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+export const getHeroImagesAdmin = () => api.get('/hero/all');
+export const createHeroImage = (data) => api.post('/hero', data);
+export const updateHeroImage = (id, data) => api.put(`/hero/${id}`, data);
+export const deleteHeroImage = (id) => api.delete(`/hero/${id}`);
 
 export const getOrders = (params) => api.get('/orders', { params });
 export const getOrder = (id) => api.get(`/orders/${id}`);

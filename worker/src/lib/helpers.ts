@@ -1,5 +1,6 @@
 export type Env = {
   DB: D1Database;
+  MEDIA: R2Bucket;
   JWT_SECRET: string;
   ADMIN_EMAIL: string;
   ADMIN_PASSWORD: string;
@@ -47,7 +48,13 @@ export const mapProduct = (row: any, category?: any) => {
     description: row.description,
     price: row.price,
     category: category
-      ? { _id: category.id, id: category.id, name: category.name, slug: category.slug }
+      ? {
+          _id: category.id,
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          type: category.type || row.c_type || 'general',
+        }
       : row.category_id,
     images: parseJson(row.images_json, []),
     availability: row.availability,
@@ -59,6 +66,10 @@ export const mapProduct = (row: any, category?: any) => {
     featured: !!row.featured,
     soldCount: row.sold_count,
     isActive: !!row.is_active,
+    productType: row.product_type || 'general',
+    unitType: row.unit_type || 'piece',
+    minOrder: row.min_order != null ? Number(row.min_order) : 1,
+    freeDelivery: !!row.free_delivery,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -90,6 +101,7 @@ export const mapCategory = (row: any) =>
         slug: row.slug,
         description: row.description,
         image: row.image,
+        type: row.type || 'general',
         isActive: !!row.is_active,
         createdAt: row.created_at,
       }
@@ -128,5 +140,23 @@ export const mapReview = (row: any, extra: Record<string, unknown> = {}) =>
         isHidden: !!row.is_hidden,
         createdAt: row.created_at,
         ...extra,
+      }
+    : null;
+
+export const mapMembershipApp = (row: any) =>
+  row
+    ? {
+        _id: row.id,
+        id: row.id,
+        userId: row.user_id,
+        fullName: row.full_name,
+        profession: row.profession || '',
+        mobile: row.mobile,
+        photo: row.photo,
+        status: row.status,
+        adminNote: row.admin_note || '',
+        fee: row.fee,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
       }
     : null;

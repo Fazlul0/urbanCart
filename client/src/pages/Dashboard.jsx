@@ -293,7 +293,7 @@ const DashboardInner = () => {
       <Helmet>
         <title>Dashboard — UrbanCart</title>
       </Helmet>
-      <div className="pt-28 pb-16">
+      <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
           <h1 className="font-display text-4xl mb-2">Hello, {user?.name?.split(' ')[0]}</h1>
           <p className="text-brand-muted mb-8">Manage your account and orders</p>

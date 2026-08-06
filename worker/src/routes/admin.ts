@@ -79,12 +79,17 @@ admin.get('/products', async (c) => {
   const limit = Math.min(50, Number(c.req.query('limit') || 20));
   const offset = (page - 1) * limit;
   const search = c.req.query('search');
+  const type = c.req.query('type');
 
   let where = '1=1';
   const binds: unknown[] = [];
   if (search) {
     where += ' AND (p.name LIKE ? OR p.description LIKE ?)';
     binds.push(`%${search}%`, `%${search}%`);
+  }
+  if (type) {
+    where += ' AND p.product_type = ?';
+    binds.push(type);
   }
 
   const total =
@@ -95,7 +100,7 @@ admin.get('/products', async (c) => {
     )?.total || 0;
 
   const { results } = await c.env.DB.prepare(
-    `SELECT p.*, c.id as c_id, c.name as c_name, c.slug as c_slug
+    `SELECT p.*, c.id as c_id, c.name as c_name, c.slug as c_slug, c.type as c_type
      FROM products p LEFT JOIN categories c ON c.id = p.category_id
      WHERE ${where}
      ORDER BY p.created_at DESC LIMIT ? OFFSET ?`
@@ -106,7 +111,7 @@ admin.get('/products', async (c) => {
   return c.json({
     success: true,
     products: (results || []).map((r: any) =>
-      mapProduct(r, { id: r.c_id, name: r.c_name, slug: r.c_slug })
+      mapProduct(r, { id: r.c_id, name: r.c_name, slug: r.c_slug, type: r.c_type || 'general' })
     ),
     pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 },
   });

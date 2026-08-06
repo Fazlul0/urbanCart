@@ -29,6 +29,7 @@ orders.post('/', protect, async (c) => {
 
   const items: any[] = [];
   let subtotal = 0;
+  let hasFreeDelivery = false;
   for (const row of results as any[]) {
     if (!row.is_active) {
       return c.json({ success: false, message: `Product unavailable: ${row.name}` }, 400);
@@ -36,6 +37,17 @@ orders.post('/', protect, async (c) => {
     if (row.availability === 'out_of_stock') {
       return c.json({ success: false, message: `${row.name} is out of stock` }, 400);
     }
+    const minOrder = Number(row.min_order ?? 1) || 1;
+    if (Number(row.quantity) < minOrder) {
+      return c.json(
+        {
+          success: false,
+          message: `Minimum order for ${row.name} is ${minOrder} ${row.unit_type || 'piece'}`,
+        },
+        400
+      );
+    }
+    if (row.free_delivery) hasFreeDelivery = true;
     const images = parseJson<any[]>(row.images_json, []);
     const thumb = images.find((i) => i.isThumbnail) || images[0];
     items.push({
@@ -44,11 +56,13 @@ orders.post('/', protect, async (c) => {
       image: thumb?.url || '',
       price: row.price,
       quantity: row.quantity,
+      unitType: row.unit_type || 'piece',
+      freeDelivery: !!row.free_delivery,
     });
     subtotal += row.price * row.quantity;
   }
 
-  const charge = deliveryCharge(c.env);
+  const charge = hasFreeDelivery ? 0 : deliveryCharge(c.env);
   const id = uid();
   const orderNumber = `UC${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 900 + 100)}`;
   const history = [{ status: 'pending', note: 'Order placed', updatedAt: new Date().toISOString() }];

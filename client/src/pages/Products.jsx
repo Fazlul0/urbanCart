@@ -7,7 +7,8 @@ import { ProductCardSkeleton } from '../components/ui/Skeleton';
 import { getProducts, getCategories } from '../services/api';
 import { debounce } from '../utils/helpers';
 
-const Products = () => {
+const Products = ({ productType = 'general' }) => {
+  const isFood = productType === 'food';
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -23,6 +24,7 @@ const Products = () => {
     availability: searchParams.get('availability') || '',
     sort: searchParams.get('sort') || 'newest',
     page: searchParams.get('page') || '1',
+    freeDelivery: searchParams.get('freeDelivery') || '',
   };
 
   const updateFilter = (key, value) => {
@@ -40,12 +42,14 @@ const Products = () => {
         page: filters.page,
         limit: 12,
         sort: filters.sort,
+        type: productType,
       };
       if (filters.search) params.search = filters.search;
       if (filters.category) params.category = filters.category;
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       if (filters.availability) params.availability = filters.availability;
+      if (filters.freeDelivery === 'true') params.freeDelivery = 'true';
 
       const res = await getProducts(params);
       setProducts(res.data.products);
@@ -56,6 +60,7 @@ const Products = () => {
       setLoading(false);
     }
   }, [
+    productType,
     filters.page,
     filters.sort,
     filters.search,
@@ -63,11 +68,14 @@ const Products = () => {
     filters.minPrice,
     filters.maxPrice,
     filters.availability,
+    filters.freeDelivery,
   ]);
 
   useEffect(() => {
-    getCategories().then((res) => setCategories(res.data.categories)).catch(() => {});
-  }, []);
+    getCategories({ type: productType })
+      .then((res) => setCategories(res.data.categories))
+      .catch(() => {});
+  }, [productType]);
 
   useEffect(() => {
     fetchProducts();
@@ -144,6 +152,15 @@ const Products = () => {
         </select>
       </div>
 
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={filters.freeDelivery === 'true'}
+          onChange={(e) => updateFilter('freeDelivery', e.target.checked ? 'true' : '')}
+        />
+        Free delivery only
+      </label>
+
       <div>
         <label className="text-sm font-medium mb-2 block">Sort By</label>
         <select
@@ -171,15 +188,19 @@ const Products = () => {
   return (
     <>
       <Helmet>
-        <title>Shop — UrbanCart</title>
+        <title>{isFood ? 'Food Market' : 'Shop'} — UrbanCart</title>
       </Helmet>
 
-      <div className="pt-28 pb-16">
+      <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h1 className="font-display text-4xl md:text-5xl mb-2">Shop All</h1>
+            <h1 className="font-display text-4xl md:text-5xl mb-2">
+              {isFood ? 'Food Market' : 'Shop All'}
+            </h1>
             <p className="text-brand-muted">
-              {pagination.total} product{pagination.total !== 1 ? 's' : ''} found
+              {pagination.total} {isFood ? 'item' : 'product'}
+              {pagination.total !== 1 ? 's' : ''} found
+              {isFood ? ' · Order by piece or weight' : ''}
             </p>
           </div>
 
@@ -216,7 +237,7 @@ const Products = () => {
               </div>
 
               {loading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <ProductCardSkeleton key={i} />
                   ))}
@@ -229,7 +250,7 @@ const Products = () => {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
                   {products.map((p) => (
                     <ProductCard key={p._id} product={p} />
                   ))}

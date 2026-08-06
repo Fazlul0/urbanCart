@@ -7,7 +7,7 @@ const Contact = () => (
     <Helmet>
       <title>Contact — UrbanCart</title>
     </Helmet>
-    <div className="pt-28 pb-16">
+    <div className="pt-6 pb-16">
       <div className="container-uc px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Reach Out</p>

@@ -6,6 +6,9 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
+import HeroImages from './pages/HeroImages';
+import Membership from './pages/Membership';
+import SiteSettings from './pages/SiteSettings';
 import Orders, { OrderDetail } from './pages/Orders';
 import Reviews from './pages/Reviews';
 import Users from './pages/Users';
@@ -24,8 +27,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="products" element={<Products />} />
-            <Route path="categories" element={<Categories />} />
+            <Route path="hero" element={<HeroImages />} />
+            <Route path="products" element={<Products productType="general" />} />
+            <Route path="categories" element={<Categories categoryType="general" />} />
+            <Route path="food/products" element={<Products productType="food" />} />
+            <Route path="food/categories" element={<Categories categoryType="food" />} />
+            <Route path="membership" element={<Membership />} />
+            <Route path="site" element={<SiteSettings />} />
             <Route path="orders" element={<Orders />} />
             <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="reviews" element={<Reviews />} />

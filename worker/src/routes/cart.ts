@@ -16,10 +16,16 @@ async function getOrCreateCart(db: D1Database, userId: string) {
   return row;
 }
 
+function unitLabel(unitType: string) {
+  if (unitType === 'kg') return 'kg';
+  if (unitType === 'g') return 'g';
+  return 'pcs';
+}
+
 async function buildCartResponse(db: D1Database, env: Env, cartId: string) {
   const { results } = await db
     .prepare(
-      `SELECT ci.id as item_id, ci.quantity, p.*, c.id as c_id, c.name as c_name, c.slug as c_slug
+      `SELECT ci.id as item_id, ci.quantity, p.*, c.id as c_id, c.name as c_name, c.slug as c_slug, c.type as c_type
        FROM cart_items ci
        JOIN products p ON p.id = ci.product_id
        LEFT JOIN categories c ON c.id = p.category_id
@@ -29,25 +35,41 @@ async function buildCartResponse(db: D1Database, env: Env, cartId: string) {
     .all();
 
   const items = (results || []).map((row: any) => {
-    const product = mapProduct(row, { id: row.c_id, name: row.c_name, slug: row.c_slug });
+    const product = mapProduct(row, {
+      id: row.c_id,
+      name: row.c_name,
+      slug: row.c_slug,
+      type: row.c_type || 'general',
+    });
     return {
       _id: row.item_id,
       product,
-      quantity: row.quantity,
-      lineTotal: (product?.price || 0) * row.quantity,
+      quantity: Number(row.quantity),
+      lineTotal: (product?.price || 0) * Number(row.quantity),
     };
   });
 
   const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
-  const charge = items.length ? deliveryCharge(env) : 0;
+  const hasFreeDelivery = items.some((i) => i.product?.freeDelivery);
+  const charge = !items.length || hasFreeDelivery ? 0 : deliveryCharge(env);
 
   return {
     items,
     subtotal,
     deliveryCharge: charge,
+    freeDelivery: hasFreeDelivery,
     total: subtotal + charge,
     itemCount: items.reduce((s, i) => s + i.quantity, 0),
   };
+}
+
+function validateQty(product: any, quantity: number) {
+  const minOrder = Number(product.min_order ?? 1) || 1;
+  const unit = product.unit_type || 'piece';
+  if (quantity < minOrder) {
+    return `Minimum order for ${product.name} is ${minOrder} ${unitLabel(unit)}`;
+  }
+  return null;
 }
 
 cart.use('*', protect);
@@ -77,15 +99,20 @@ cart.post('/add', async (c) => {
     .bind(cartRow.id, productId)
     .first<any>();
 
+  const addQty = Number(quantity);
+  const nextQty = existing ? Number(existing.quantity) + addQty : addQty;
+  const err = validateQty(product, nextQty);
+  if (err) return c.json({ success: false, message: err }, 400);
+
   if (existing) {
     await c.env.DB.prepare('UPDATE cart_items SET quantity = ? WHERE id = ?')
-      .bind(existing.quantity + Number(quantity), existing.id)
+      .bind(nextQty, existing.id)
       .run();
   } else {
     await c.env.DB.prepare(
       'INSERT INTO cart_items (id, cart_id, product_id, quantity) VALUES (?, ?, ?, ?)'
     )
-      .bind(uid(), cartRow.id, productId, Number(quantity))
+      .bind(uid(), cartRow.id, productId, nextQty)
       .run();
   }
 
@@ -103,6 +130,13 @@ cart.put('/update', async (c) => {
       .bind(cartRow.id, productId)
       .run();
   } else {
+    const product = await c.env.DB.prepare('SELECT * FROM products WHERE id = ?')
+      .bind(productId)
+      .first<any>();
+    if (!product) return c.json({ success: false, message: 'Product not found' }, 404);
+    const err = validateQty(product, Number(quantity));
+    if (err) return c.json({ success: false, message: err }, 400);
+
     const existing = await c.env.DB.prepare(
       'SELECT id FROM cart_items WHERE cart_id = ? AND product_id = ?'
     )
@@ -125,7 +159,7 @@ cart.delete('/clear', async (c) => {
   return c.json({
     success: true,
     message: 'Cart cleared',
-    cart: { items: [], subtotal: 0, deliveryCharge: 0, total: 0, itemCount: 0 },
+    cart: { items: [], subtotal: 0, deliveryCharge: 0, freeDelivery: false, total: 0, itemCount: 0 },
   });
 });
 

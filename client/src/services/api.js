@@ -42,7 +42,27 @@ export const getProduct = (id) => api.get(`/products/${id}`);
 export const getRelatedProducts = (id) => api.get(`/products/${id}/related`);
 
 // Categories
-export const getCategories = () => api.get('/categories');
+export const getCategories = (params) => api.get('/categories', { params });
+
+// Hero
+export const getHeroImages = () => api.get('/hero');
+
+// Media
+export const uploadImage = (file) => {
+  const form = new FormData();
+  form.append('file', file);
+  return api.post('/media/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
+// Membership
+export const getMembershipSettings = () => api.get('/membership/settings');
+export const applyMembership = (data) => api.post('/membership/apply', data);
+export const getMyMembershipApplications = () => api.get('/membership/my');
+
+// Site branding
+export const getSiteSettings = () => api.get('/site/settings');
 
 // Cart
 export const getCart = () => api.get('/cart');

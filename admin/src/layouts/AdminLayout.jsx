@@ -9,14 +9,23 @@ import {
   LogOut,
   Menu,
   X,
+  Images,
+  UtensilsCrossed,
+  CreditCard,
+  Palette,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 const links = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/site', icon: Palette, label: 'Site Branding' },
+  { to: '/hero', icon: Images, label: 'Hero Images' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/categories', icon: FolderTree, label: 'Categories' },
+  { to: '/food/products', icon: UtensilsCrossed, label: 'Food Products' },
+  { to: '/food/categories', icon: UtensilsCrossed, label: 'Food Categories' },
+  { to: '/membership', icon: CreditCard, label: 'Membership' },
   { to: '/orders', icon: ShoppingBag, label: 'Orders' },
   { to: '/reviews', icon: Star, label: 'Reviews' },
   { to: '/users', icon: Users, label: 'Users' },

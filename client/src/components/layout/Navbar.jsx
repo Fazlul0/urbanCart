@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, User, Menu, X, LogOut } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, LogOut, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '../ui/Logo';
 import { useAuth } from '../../context/AuthContext';
@@ -58,6 +58,7 @@ const Navbar = () => {
   const links = [
     { to: '/', label: 'Home' },
     { to: '/products', label: 'Shop' },
+    { to: '/food', label: 'Food' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
   ];
@@ -92,6 +93,10 @@ const Navbar = () => {
           >
             <Search size={18} />
           </button>
+
+          <Link to="/membership" className={iconBtn} aria-label="Membership card" title="Membership">
+            <CreditCard size={18} />
+          </Link>
 
           <Link to="/cart" className={`relative ${iconBtn}`} aria-label="Cart">
             <ShoppingBag size={18} />
@@ -208,6 +213,13 @@ const Navbar = () => {
                   {l.label}
                 </NavLink>
               ))}
+              <Link
+                to="/membership"
+                onClick={() => setMobileOpen(false)}
+                className="px-4 py-3 rounded-xl text-sm font-medium hover:bg-neutral-50 flex items-center gap-2"
+              >
+                <CreditCard size={16} /> Membership
+              </Link>
               {isAuthenticated ? (
                 <>
                   <Link

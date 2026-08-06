@@ -37,7 +37,7 @@ const ProductDetails = () => {
         setRelated(r.data.products);
         setReviews(rev.data.reviews);
         setActiveImage(0);
-        setQty(1);
+        setQty(p.data.product?.minOrder || 1);
       })
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
@@ -70,7 +70,7 @@ const ProductDetails = () => {
 
   if (loading) {
     return (
-      <div className="pt-28 min-h-[60vh] flex items-center justify-center">
+      <div className="pt-6 min-h-[60vh] flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -78,7 +78,7 @@ const ProductDetails = () => {
 
   if (!product) {
     return (
-      <div className="pt-28 text-center py-20">
+      <div className="pt-6 text-center py-20">
         <h1 className="font-display text-3xl mb-4">Product not found</h1>
         <Link to="/products" className="btn-primary">
           Back to Shop
@@ -103,7 +103,7 @@ const ProductDetails = () => {
         <meta name="description" content={product.description?.slice(0, 160)} />
       </Helmet>
 
-      <div className="pt-28 pb-16">
+      <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
             {/* Gallery */}
@@ -166,19 +166,36 @@ const ProductDetails = () => {
                   {product.totalReviews} review{product.totalReviews !== 1 ? 's' : ''}
                 </span>
               </div>
-              <p className="text-3xl font-semibold mb-4">{formatBDT(product.price)}</p>
-              <span
-                className={`inline-block text-sm font-medium px-3 py-1 rounded-full mb-6 ${
-                  product.availability === 'in_stock'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {AVAILABILITY_LABELS[product.availability]}
-                {product.stockQuantity > 0 && product.availability === 'in_stock'
-                  ? ` · ${product.stockQuantity} left`
-                  : ''}
-              </span>
+              <p className="text-3xl font-semibold mb-4">
+                {formatBDT(product.price)}
+                {product.unitType && product.unitType !== 'piece' && (
+                  <span className="text-base font-normal text-brand-muted"> / {product.unitType}</span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-2 mb-6">
+                <span
+                  className={`inline-block text-sm font-medium px-3 py-1 rounded-full ${
+                    product.availability === 'in_stock'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {AVAILABILITY_LABELS[product.availability]}
+                  {product.stockQuantity > 0 && product.availability === 'in_stock'
+                    ? ` · ${product.stockQuantity} left`
+                    : ''}
+                </span>
+                {product.freeDelivery && (
+                  <span className="inline-block text-sm font-medium px-3 py-1 rounded-full bg-emerald-600 text-white">
+                    Free Delivery
+                  </span>
+                )}
+                {product.minOrder != null && (
+                  <span className="inline-block text-sm font-medium px-3 py-1 rounded-full bg-neutral-100 text-brand-muted">
+                    Min order: {product.minOrder} {product.unitType || 'pcs'}
+                  </span>
+                )}
+              </div>
               <p className="text-brand-muted leading-relaxed mb-8">{product.description}</p>
 
               {product.tags?.length > 0 && (
@@ -197,13 +214,26 @@ const ProductDetails = () => {
               <div className="flex flex-wrap items-center gap-4 mb-8">
                 <div className="flex items-center border border-brand-border rounded-xl overflow-hidden">
                   <button
-                    onClick={() => setQty(Math.max(1, qty - 1))}
+                    onClick={() => {
+                      const step = product.unitType === 'kg' ? 0.25 : product.unitType === 'g' ? 50 : 1;
+                      const min = product.minOrder || 1;
+                      setQty(Math.max(min, Math.round((qty - step) * 100) / 100));
+                    }}
                     className="p-3 hover:bg-neutral-50"
                   >
                     <Minus size={16} />
                   </button>
-                  <span className="px-4 font-medium min-w-[3rem] text-center">{qty}</span>
-                  <button onClick={() => setQty(qty + 1)} className="p-3 hover:bg-neutral-50">
+                  <span className="px-4 font-medium min-w-[3.5rem] text-center">
+                    {qty}
+                    {product.unitType && product.unitType !== 'piece' ? ` ${product.unitType}` : ''}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const step = product.unitType === 'kg' ? 0.25 : product.unitType === 'g' ? 50 : 1;
+                      setQty(Math.round((qty + step) * 100) / 100);
+                    }}
+                    className="p-3 hover:bg-neutral-50"
+                  >
                     <Plus size={16} />
                   </button>
                 </div>

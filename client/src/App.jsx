@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import MainLayout from './layouts/MainLayout';
 
 const Home = lazy(() => import('./pages/Home'));
@@ -16,6 +17,7 @@ const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
+const Membership = lazy(() => import('./pages/Membership'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const Loader = () => (
@@ -27,6 +29,7 @@ const Loader = () => (
 function App() {
   return (
     <HelmetProvider>
+      <SiteSettingsProvider>
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
@@ -47,11 +50,13 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route element={<MainLayout />}>
                   <Route index element={<Home />} />
-                  <Route path="products" element={<Products />} />
+                  <Route path="products" element={<Products productType="general" />} />
+                  <Route path="food" element={<Products productType="food" />} />
                   <Route path="products/:id" element={<ProductDetails />} />
                   <Route path="cart" element={<Cart />} />
                   <Route path="checkout" element={<Checkout />} />
                   <Route path="dashboard/*" element={<Dashboard />} />
+                  <Route path="membership" element={<Membership />} />
                   <Route path="about" element={<About />} />
                   <Route path="contact" element={<Contact />} />
                   <Route path="*" element={<NotFound />} />
@@ -61,6 +66,7 @@ function App() {
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>
+      </SiteSettingsProvider>
     </HelmetProvider>
   );
 }

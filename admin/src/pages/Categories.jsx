@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ImageUploader from '../components/ImageUploader';
 import {
   getCategories,
   createCategory,
@@ -8,7 +9,8 @@ import {
   deleteCategory,
 } from '../services/api';
 
-const Categories = () => {
+const Categories = ({ categoryType = 'general' }) => {
+  const isFood = categoryType === 'food';
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
@@ -18,7 +20,7 @@ const Categories = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await getCategories();
+      const res = await getCategories({ type: categoryType });
       setCategories(res.data.categories);
     } catch {
       toast.error('Failed to load');
@@ -29,7 +31,7 @@ const Categories = () => {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [categoryType]);
 
   const openCreate = () => {
     setForm({ name: '', description: '', image: '', isActive: true });
@@ -50,11 +52,12 @@ const Categories = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = { ...form, type: categoryType };
       if (modal === 'create') {
-        await createCategory(form);
+        await createCategory(payload);
         toast.success('Category created');
       } else {
-        await updateCategory(modal._id, form);
+        await updateCategory(modal._id, payload);
         toast.success('Category updated');
       }
       setModal(null);
@@ -69,11 +72,26 @@ const Categories = () => {
   const handleDelete = async (id) => {
     if (!confirm('Delete this category?')) return;
     try {
-      await deleteCategory(id);
+      await deleteCategory(id, false);
       toast.success('Category deleted');
       load();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Delete failed');
+      const data = err.response?.data;
+      if (data?.requiresForce) {
+        const ok = confirm(
+          `${data.message}\n\nThis will permanently delete ${data.productCount} product(s). Continue?`
+        );
+        if (!ok) return;
+        try {
+          await deleteCategory(id, true);
+          toast.success(data.productCount ? `Category and products deleted` : 'Category deleted');
+          load();
+        } catch (e2) {
+          toast.error(e2.response?.data?.message || 'Delete failed');
+        }
+      } else {
+        toast.error(data?.message || 'Delete failed');
+      }
     }
   };
 
@@ -81,11 +99,11 @@ const Categories = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Categories</h2>
+          <h2 className="text-2xl font-semibold">{isFood ? 'Food Categories' : 'Categories'}</h2>
           <p className="text-sm text-neutral-500">{categories.length} categories</p>
         </div>
         <button onClick={openCreate} className="btn-primary">
-          <Plus size={16} /> Add Category
+          <Plus size={16} /> {isFood ? 'Add Food Category' : 'Add Category'}
         </button>
       </div>
 
@@ -96,7 +114,9 @@ const Categories = () => {
           categories.map((c) => (
             <div key={c._id} className="card overflow-hidden">
               {c.image && (
-                <img src={c.image} alt={c.name} className="h-32 w-full object-cover" />
+                <div className="aspect-[4/3] w-full overflow-hidden bg-neutral-100">
+                  <img src={c.image} alt={c.name} className="h-full w-full object-cover" />
+                </div>
               )}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -159,12 +179,12 @@ const Categories = () => {
               />
             </div>
             <div>
-              <label className="text-xs font-medium mb-1 block">Image URL</label>
-              <input
+              <label className="text-xs font-medium mb-1 block">Category Image</label>
+              <ImageUploader
+                fit="category"
+                label="Upload category image"
                 value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className="input-field"
-                placeholder="https://..."
+                onUploaded={(url) => setForm({ ...form, image: url })}
               />
             </div>
             <label className="flex items-center gap-2 text-sm">

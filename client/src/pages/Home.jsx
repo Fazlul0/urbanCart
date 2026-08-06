@@ -1,60 +1,32 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Shield, Truck, Banknote, BadgeCheck, Star, MessageCircle, Phone } from 'lucide-react';
+import {
+  ArrowRight,
+  Shield,
+  Truck,
+  Banknote,
+  BadgeCheck,
+  MessageCircle,
+  Phone,
+  Check,
+  CreditCard,
+  ShoppingBag,
+  User,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import ProductCard from '../components/product/ProductCard';
-import { ProductCardSkeleton } from '../components/ui/Skeleton';
-import { getProducts, getCategories } from '../services/api';
+import {
+  getCategories,
+  getHeroImages,
+  getMembershipSettings,
+} from '../services/api';
 import FacebookIcon from '../components/ui/FacebookIcon';
-
-const HERO_IMAGES = [
-  {
-    src: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1920&q=85',
-    alt: 'Premium chronograph watch',
-    position: 'center 30%',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1627123424574-724758594f93?w=1920&q=85',
-    alt: 'Leather wallet',
-    position: 'center center',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=1920&q=85',
-    alt: 'Aviator sunglasses',
-    position: 'center 40%',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1920&q=85',
-    alt: 'Car accessories',
-    position: 'center 45%',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=1920&q=85',
-    alt: 'Minimalist watch',
-    position: 'center 35%',
-  },
-];
+import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { formatBDT } from '../utils/helpers';
 
 const HERO_INTERVAL_MS = 5000;
-
-const reviews = [
-  {
-    name: 'Rahim Ahmed',
-    text: 'The Aurora Chronograph exceeded my expectations. Premium feel and fast COD delivery.',
-    rating: 5,
-  },
-  {
-    name: 'Karim Hassan',
-    text: 'Best wallet I have bought online in BD. Quality leather and RFID protection works great.',
-    rating: 5,
-  },
-  {
-    name: 'Nayeem Islam',
-    text: 'Car looking glass looks amazing. Installation was easy and packaging was solid.',
-    rating: 4,
-  },
-];
 
 const whyUs = [
   { icon: Shield, title: 'Premium Quality', desc: 'Curated accessories built to last' },
@@ -64,193 +36,307 @@ const whyUs = [
 ];
 
 const Home = () => {
-  const [featured, setFeatured] = useState([]);
+  const { siteName, logoUrl } = useSiteSettings();
+  const { isAuthenticated } = useAuth();
+  const { cart } = useCart();
   const [categories, setCategories] = useState([]);
+  const [membership, setMembership] = useState(null);
+  const [heroImages, setHeroImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [heroIndex, setHeroIndex] = useState(0);
 
+  const brandParts = (siteName || 'UrbanCart').trim().split(/\s+/);
+  const brandLast = brandParts.length > 1 ? brandParts.pop() : null;
+  const brandFirst = brandParts.length ? brandParts.join(' ') : siteName || 'UrbanCart';
+  const initials = (siteName || 'UC')
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   useEffect(() => {
     Promise.all([
-      getProducts({ featured: true, limit: 8 }),
-      getCategories(),
+      getCategories({ type: 'general' }),
+      getHeroImages().catch(() => ({ data: { images: [] } })),
+      getMembershipSettings().catch(() => null),
     ])
-      .then(([prodRes, catRes]) => {
-        setFeatured(prodRes.data.products);
-        setCategories(catRes.data.categories.slice(0, 4));
+      .then(([catRes, heroRes, memRes]) => {
+        setCategories(catRes.data.categories || []);
+        setMembership(memRes?.data?.settings || null);
+        const slides = (heroRes.data.images || []).map((img) => ({
+          url: img.url,
+          alt: img.alt || siteName,
+          position: img.position || 'center center',
+        }));
+        setHeroImages(slides);
+        setHeroIndex(0);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [siteName]);
 
   useEffect(() => {
-    HERO_IMAGES.forEach((img) => {
+    heroImages.forEach((img) => {
+      if (!img.url) return;
       const preload = new Image();
-      preload.src = img.src;
+      preload.src = img.url;
     });
-  }, []);
+  }, [heroImages]);
 
   useEffect(() => {
+    if (heroImages.length <= 1) return undefined;
     const timer = setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % HERO_IMAGES.length);
+      setHeroIndex((prev) => (prev + 1) % heroImages.length);
     }, HERO_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroImages]);
+
+  const features = (membership?.features || []).slice(0, 3);
 
   return (
     <>
       <Helmet>
-        <title>UrbanCart — Premium Men's Accessories</title>
+        <title>{siteName} — Premium Men's Accessories</title>
       </Helmet>
 
-      {/* Hero */}
-      <section className="relative min-h-[100svh] flex items-end sm:items-center overflow-hidden bg-brand-black">
-        <AnimatePresence mode="sync">
-          <motion.div
-            key={heroIndex}
-            className="absolute inset-0"
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <img
-              src={HERO_IMAGES[heroIndex].src}
-              alt={HERO_IMAGES[heroIndex].alt}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: HERO_IMAGES[heroIndex].position }}
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-black via-brand-black/70 to-brand-black/25 sm:bg-gradient-to-r sm:from-brand-black sm:via-brand-black/75 sm:to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(201,162,39,0.18),transparent_45%)]" />
-
-        <div className="relative container-uc w-full px-4 sm:px-6 lg:px-8 pt-32 pb-16 sm:pb-24">
-          <motion.div
-            initial={{ opacity: 0, y: 36 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-xl"
-          >
-            <h1 className="font-display text-[clamp(3.25rem,10vw,6.5rem)] leading-[0.9] text-white tracking-tight mb-5">
-              Urban<span className="text-brand-gold">Cart</span>
-            </h1>
-            <p className="font-display text-2xl sm:text-3xl text-white/90 leading-snug mb-4">
-              Accessories for the modern gentleman
-            </p>
-            <p className="text-neutral-300 text-base sm:text-lg mb-9 max-w-md leading-relaxed">
-              Watches, wallets, and car essentials — curated quality, Cash on Delivery across Bangladesh.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/products"
-                className="inline-flex items-center gap-2 bg-brand-gold text-brand-black font-medium px-7 py-3.5 rounded-full hover:bg-brand-gold-light transition-all duration-300 hover:-translate-y-0.5"
-              >
-                Shop Now <ArrowRight size={18} />
-              </Link>
-              <Link
-                to="/about"
-                className="inline-flex items-center gap-2 border border-white/35 text-white px-7 py-3.5 rounded-full hover:border-brand-gold hover:text-brand-gold transition-all duration-300"
-              >
-                Our Story
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="absolute bottom-8 right-6 sm:right-10 z-10 flex items-center gap-2">
-          {HERO_IMAGES.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={`Show slide ${i + 1}`}
-              onClick={() => setHeroIndex(i)}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                i === heroIndex
-                  ? 'w-8 bg-brand-gold'
-                  : 'w-1.5 bg-white/35 hover:bg-white/60'
-              }`}
-            />
-          ))}
-        </div>
-
-        <motion.div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden sm:flex flex-col items-center gap-2 text-white/40"
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+      {/* Utility icons (replaces navbar on home) */}
+      <div className="fixed top-3 right-3 sm:top-4 sm:right-5 z-50 flex items-center gap-1">
+        <Link
+          to="/membership"
+          className="p-2 rounded-full bg-black/35 text-white backdrop-blur hover:bg-brand-gold hover:text-brand-black transition"
+          aria-label="Membership"
         >
-          <span className="text-[10px] tracking-[0.25em] uppercase">Scroll</span>
-          <span className="w-px h-8 bg-gradient-to-b from-brand-gold/80 to-transparent" />
-        </motion.div>
-      </section>
+          <CreditCard size={16} />
+        </Link>
+        <Link
+          to="/cart"
+          className="relative p-2 rounded-full bg-black/35 text-white backdrop-blur hover:bg-brand-gold hover:text-brand-black transition"
+          aria-label="Cart"
+        >
+          <ShoppingBag size={16} />
+          {cart.itemCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 bg-brand-gold text-brand-black text-[9px] font-bold rounded-full flex items-center justify-center">
+              {cart.itemCount > 9 ? '9+' : cart.itemCount}
+            </span>
+          )}
+        </Link>
+        {isAuthenticated ? (
+          <Link
+            to="/dashboard"
+            className="p-2 rounded-full bg-black/35 text-white backdrop-blur hover:bg-brand-gold hover:text-brand-black transition"
+            aria-label="Account"
+          >
+            <User size={16} />
+          </Link>
+        ) : (
+          <Link
+            to="/login"
+            className="ml-0.5 text-xs font-medium px-3 py-1.5 rounded-full bg-brand-gold text-brand-black hover:bg-brand-gold-light transition"
+          >
+            Login
+          </Link>
+        )}
+      </div>
 
-      {/* Categories */}
-      <section className="section-pad">
-        <div className="container-uc">
-          <div className="text-center mb-12">
-            <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Collections</p>
-            <h2 className="font-display text-4xl md:text-5xl text-brand-black">Featured Categories</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((cat, i) => (
-              <motion.div
-                key={cat._id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <Link
-                  to={`/products?category=${cat._id}`}
-                  className="group relative block aspect-[4/5] rounded-2xl overflow-hidden"
-                >
-                  <img
-                    src={cat.image || 'https://placehold.co/400x500/111/C9A227?text=UC'}
-                    alt={cat.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brand-black/80 via-brand-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <h3 className="font-display text-2xl text-white group-hover:text-brand-gold transition">
-                      {cat.name}
-                    </h3>
-                    <p className="text-neutral-300 text-sm mt-1 line-clamp-2">{cat.description}</p>
-                  </div>
-                </Link>
-              </motion.div>
+      {/* Short hero — brand name + icon only */}
+      <section className="relative h-[22svh] min-h-[140px] max-h-[180px] sm:h-[20svh] sm:max-h-[200px] flex items-center overflow-hidden bg-brand-black">
+        {heroImages.length > 0 && (
+          <AnimatePresence mode="sync">
+            <motion.div
+              key={heroIndex}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+            >
+              <img
+                src={heroImages[heroIndex]?.url}
+                alt={heroImages[heroIndex]?.alt || siteName}
+                className="w-full h-full object-cover"
+                style={{ objectPosition: heroImages[heroIndex]?.position || 'center center' }}
+              />
+            </motion.div>
+          </AnimatePresence>
+        )}
+
+        <div className={`absolute inset-0 ${heroImages.length ? 'bg-brand-black/55' : 'bg-gradient-to-br from-neutral-900 via-brand-black to-neutral-950'}`} />
+
+        <div className="relative container-uc w-full px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+            className="flex items-center gap-2.5 sm:gap-3"
+          >
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={siteName}
+                className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg object-contain shrink-0 bg-white/10"
+              />
+            ) : (
+              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-brand-gold text-brand-black flex items-center justify-center font-display font-bold text-xs sm:text-sm shrink-0">
+                {initials}
+              </div>
+            )}
+            <h1 className="font-display text-[clamp(1.75rem,6vw,2.75rem)] leading-none text-white tracking-tight">
+              {brandLast ? (
+                <>
+                  {brandFirst}
+                  <span className="text-brand-gold"> {brandLast}</span>
+                </>
+              ) : (
+                <>
+                  {brandFirst.slice(0, Math.ceil(brandFirst.length / 2))}
+                  <span className="text-brand-gold">
+                    {brandFirst.slice(Math.ceil(brandFirst.length / 2))}
+                  </span>
+                </>
+              )}
+            </h1>
+          </motion.div>
+        </div>
+
+        {heroImages.length > 1 && (
+          <div className="absolute bottom-2.5 right-3 sm:right-6 z-10 flex items-center gap-1">
+            {heroImages.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Show slide ${i + 1}`}
+                onClick={() => setHeroIndex(i)}
+                className={`h-1 rounded-full transition-all duration-500 ${
+                  i === heroIndex ? 'w-5 bg-brand-gold' : 'w-1 bg-white/40'
+                }`}
+              />
             ))}
           </div>
+        )}
+      </section>
+
+      {/* First screen: membership + categories + products */}
+      <section className="bg-[#f7f6f4] pt-3 pb-6 sm:pt-4 sm:pb-8">
+        <div className="container-uc px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-5">
+          {/* Membership */}
+          {membership && (
+            <div>
+              <div className="flex items-end justify-between gap-3 mb-2.5">
+                <div>
+                  <p className="text-brand-gold text-[10px] sm:text-xs uppercase tracking-widest mb-0.5">
+                    Membership
+                  </p>
+                  <h2 className="font-display text-lg sm:text-xl text-brand-black">
+                    {membership.title || 'Membership Card'}
+                  </h2>
+                </div>
+                <Link
+                  to="/membership"
+                  className="text-xs sm:text-sm font-medium text-brand-black/70 hover:text-brand-gold inline-flex items-center gap-1 shrink-0"
+                >
+                  View details <ArrowRight size={14} />
+                </Link>
+              </div>
+              <Link
+                to="/membership"
+                className="block relative overflow-hidden rounded-xl bg-brand-black text-white"
+              >
+                <div className="relative min-h-[96px] sm:min-h-[110px] flex">
+                  {membership.cardImage && (
+                    <img
+                      src={membership.cardImage}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover opacity-50"
+                    />
+                  )}
+                  <div className="relative z-10 flex-1 p-3.5 sm:p-4 flex flex-col justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-brand-gold text-[10px] tracking-widest uppercase flex items-center gap-1">
+                          <CreditCard size={12} /> Member card
+                        </p>
+                        <p className="font-semibold text-sm sm:text-base mt-0.5 line-clamp-1">
+                          {membership.title}
+                        </p>
+                      </div>
+                      <p className="text-brand-gold text-sm font-semibold shrink-0">
+                        {formatBDT(membership.fee || 0)}
+                      </p>
+                    </div>
+                    {features.length > 0 && (
+                      <ul className="flex flex-wrap gap-x-3 gap-y-1">
+                        {features.map((f) => (
+                          <li
+                            key={f}
+                            className="flex items-center gap-1 text-[11px] sm:text-xs text-white/80"
+                          >
+                            <Check size={12} className="text-brand-gold shrink-0" />
+                            <span className="line-clamp-1">{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* All categories */}
+          <div>
+            <div className="mb-2.5">
+              <p className="text-brand-gold text-[10px] sm:text-xs uppercase tracking-widest mb-0.5">
+                Collections
+              </p>
+              <h2 className="font-display text-lg sm:text-xl text-brand-black">Categories</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="aspect-[4/3] rounded-xl bg-neutral-200 animate-pulse" />
+                ))
+              ) : categories.length === 0 ? (
+                <p className="col-span-2 sm:col-span-3 lg:col-span-4 text-sm text-brand-muted py-6 text-center rounded-xl border border-dashed border-brand-border">
+                  No categories yet — add them from the admin panel.
+                </p>
+              ) : (
+                categories.map((cat) => (
+                  <Link
+                    key={cat._id}
+                    to={`/products?category=${cat._id}`}
+                    className="group relative block aspect-[4/3] rounded-xl overflow-hidden bg-neutral-200"
+                  >
+                    {cat.image ? (
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-brand-black" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-black/75 via-brand-black/10 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
+                      <h3 className="font-display text-sm sm:text-base text-white group-hover:text-brand-gold transition line-clamp-1">
+                        {cat.name}
+                      </h3>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Featured Products */}
-      <section className="section-pad bg-white">
+      <section className="section-pad !py-12 sm:!py-16">
         <div className="container-uc">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
-            <div>
-              <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Handpicked</p>
-              <h2 className="font-display text-4xl md:text-5xl text-brand-black">Featured Products</h2>
-            </div>
-            <Link to="/products" className="btn-outline text-sm py-2.5">
-              View All <ArrowRight size={16} />
-            </Link>
+          <div className="text-center mb-10">
+            <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Why {siteName}</p>
+            <h2 className="font-display text-3xl md:text-4xl text-brand-black">Why Choose Us</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
-              : featured.map((p) => <ProductCard key={p._id} product={p} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Us */}
-      <section className="section-pad">
-        <div className="container-uc">
-          <div className="text-center mb-12">
-            <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Why UrbanCart</p>
-            <h2 className="font-display text-4xl md:text-5xl text-brand-black">Why Choose Us</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {whyUs.map((item, i) => (
               <motion.div
                 key={item.title}
@@ -258,12 +344,12 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="text-center p-6"
+                className="text-center p-4"
               >
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-brand-gold/15 flex items-center justify-center text-brand-gold">
-                  <item.icon size={28} />
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-gold/15 flex items-center justify-center text-brand-gold">
+                  <item.icon size={24} />
                 </div>
-                <h3 className="font-display text-xl mb-2">{item.title}</h3>
+                <h3 className="font-display text-lg mb-1">{item.title}</h3>
                 <p className="text-brand-muted text-sm">{item.desc}</p>
               </motion.div>
             ))}
@@ -271,67 +357,26 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Reviews */}
-      <section className="section-pad bg-brand-black text-white">
-        <div className="container-uc">
-          <div className="text-center mb-12">
-            <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Testimonials</p>
-            <h2 className="font-display text-4xl md:text-5xl">Customer Reviews</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {reviews.map((r, i) => (
-              <motion.div
-                key={r.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6"
-              >
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: r.rating }).map((_, j) => (
-                    <Star key={j} size={16} className="fill-brand-gold text-brand-gold" />
-                  ))}
-                </div>
-                <p className="text-neutral-300 leading-relaxed mb-6">"{r.text}"</p>
-                <p className="font-medium text-brand-gold">{r.name}</p>
-              </motion.div>
-            ))}
-          </div>
+      <section className="section-pad !py-12 sm:!py-16">
+        <div className="container-uc max-w-2xl">
+          <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">About Us</p>
+          <h2 className="font-display text-3xl md:text-4xl mb-5">Crafted for Modern Men</h2>
+          <p className="text-brand-muted leading-relaxed mb-6">
+            {siteName} is your destination for premium men's accessories in Bangladesh. From
+            precision watches to refined wallets and stylish car upgrades — we curate products
+            that blend quality, design, and everyday utility.
+          </p>
+          <Link to="/about" className="btn-dark">
+            Learn More <ArrowRight size={16} />
+          </Link>
         </div>
       </section>
 
-      {/* About snippet */}
-      <section className="section-pad">
-        <div className="container-uc grid lg:grid-cols-2 gap-12 items-center">
-          <div className="relative aspect-[4/3] rounded-2xl overflow-hidden">
-            <img
-              src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=900&q=80"
-              alt="About UrbanCart"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div>
-            <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">About Us</p>
-            <h2 className="font-display text-4xl md:text-5xl mb-6">Crafted for Modern Men</h2>
-            <p className="text-brand-muted leading-relaxed mb-6">
-              UrbanCart is your destination for premium men's accessories in Bangladesh. From
-              precision watches to refined wallets and stylish car upgrades — we curate products
-              that blend quality, design, and everyday utility.
-            </p>
-            <Link to="/about" className="btn-dark">
-              Learn More <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact */}
-      <section className="section-pad bg-white">
+      <section className="section-pad !py-12 sm:!py-16 bg-white">
         <div className="container-uc text-center">
           <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Get In Touch</p>
-          <h2 className="font-display text-4xl md:text-5xl mb-4">Contact Us</h2>
-          <p className="text-brand-muted mb-10 max-w-md mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl mb-4">Contact Us</h2>
+          <p className="text-brand-muted mb-8 max-w-md mx-auto">
             Questions about an order or product? Reach us anytime.
           </p>
           <div className="flex flex-wrap justify-center gap-4">

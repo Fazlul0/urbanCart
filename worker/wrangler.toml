@@ -18,5 +18,9 @@ database_name = "urbancart"
 database_id = "816ca7b9-9634-49e9-a9f3-1091dbf00e4d"
 migrations_dir = "migrations"
 
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "urbancart-media"
+
 [dev]
 port = 8787

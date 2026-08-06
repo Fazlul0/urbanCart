@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { MessageCircle, Phone, Mail, MapPin } from 'lucide-react';
 import Logo from '../ui/Logo';
 import FacebookIcon from '../ui/FacebookIcon';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 
 const Footer = () => {
   const year = new Date().getFullYear();
+  const { siteName, tagline } = useSiteSettings();
 
   return (
     <footer className="bg-brand-black text-white mt-auto">
@@ -15,8 +17,8 @@ const Footer = () => {
               <Logo link={false} />
             </div>
             <p className="text-neutral-400 text-sm leading-relaxed">
-              Premium men's accessories curated for the modern gentleman. Watches, wallets, car
-              accessories and more — delivered across Bangladesh.
+              {tagline ||
+                'Premium accessories curated for everyday style — delivered across Bangladesh.'}
             </p>
             <div className="flex gap-3">
               <a
@@ -109,7 +111,7 @@ const Footer = () => {
 
       <div className="border-t border-white/10">
         <div className="container-uc px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-500">
-          <p>© {year} UrbanCart. All rights reserved.</p>
+          <p>© {year} {siteName}. All rights reserved.</p>
           <p>Cash on Delivery · Fast Delivery · Premium Quality</p>
         </div>
       </div>

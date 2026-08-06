@@ -6,7 +6,7 @@ const About = () => (
     <Helmet>
       <title>About Us — UrbanCart</title>
     </Helmet>
-    <div className="pt-28 pb-16">
+    <div className="pt-6 pb-16">
       <div className="container-uc px-4 sm:px-6 lg:px-8 max-w-3xl">
         <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Our Story</p>
         <h1 className="font-display text-4xl md:text-5xl mb-8">About UrbanCart</h1>

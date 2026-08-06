@@ -57,7 +57,7 @@ const CheckoutForm = () => {
 
   if (!cart.items?.length) {
     return (
-      <div className="pt-28 text-center py-20">
+      <div className="pt-6 text-center py-20">
         <h1 className="font-display text-3xl mb-4">Nothing to checkout</h1>
         <Link to="/products" className="btn-primary">
           Shop Now
@@ -71,7 +71,7 @@ const CheckoutForm = () => {
       <Helmet>
         <title>Checkout — UrbanCart</title>
       </Helmet>
-      <div className="pt-28 pb-16">
+      <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
           <h1 className="font-display text-4xl mb-8">Checkout</h1>
           <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-8">

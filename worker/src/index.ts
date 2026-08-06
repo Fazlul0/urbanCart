@@ -8,6 +8,10 @@ import cart from './routes/cart';
 import orders from './routes/orders';
 import reviews from './routes/reviews';
 import admin from './routes/admin';
+import media from './routes/media';
+import hero from './routes/hero';
+import membership from './routes/membership';
+import site from './routes/site';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -63,6 +67,10 @@ app.route('/api/cart', cart);
 app.route('/api/orders', orders);
 app.route('/api/reviews', reviews);
 app.route('/api/admin', admin);
+app.route('/api/media', media);
+app.route('/api/hero', hero);
+app.route('/api/membership', membership);
+app.route('/api/site', site);
 
 app.notFound((c) => c.json({ success: false, message: 'Route not found' }, 404));
 
