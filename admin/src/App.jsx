@@ -30,8 +30,6 @@ function App() {
             <Route path="hero" element={<HeroImages />} />
             <Route path="products" element={<Products productType="general" />} />
             <Route path="categories" element={<Categories categoryType="general" />} />
-            <Route path="food/products" element={<Products productType="food" />} />
-            <Route path="food/categories" element={<Categories categoryType="food" />} />
             <Route path="membership" element={<Membership />} />
             <Route path="site" element={<SiteSettings />} />
             <Route path="orders" element={<Orders />} />

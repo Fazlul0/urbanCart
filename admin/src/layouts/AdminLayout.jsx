@@ -10,12 +10,12 @@ import {
   Menu,
   X,
   Images,
-  UtensilsCrossed,
   CreditCard,
   Palette,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getStats } from '../services/api';
 
 const links = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -23,17 +23,60 @@ const links = [
   { to: '/hero', icon: Images, label: 'Hero Images' },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/categories', icon: FolderTree, label: 'Categories' },
-  { to: '/food/products', icon: UtensilsCrossed, label: 'Food Products' },
-  { to: '/food/categories', icon: UtensilsCrossed, label: 'Food Categories' },
-  { to: '/membership', icon: CreditCard, label: 'Membership' },
-  { to: '/orders', icon: ShoppingBag, label: 'Orders' },
+  { to: '/membership', icon: CreditCard, label: 'Membership', badgeKey: 'membership' },
+  { to: '/orders', icon: ShoppingBag, label: 'Orders', badgeKey: 'orders' },
   { to: '/reviews', icon: Star, label: 'Reviews' },
   { to: '/users', icon: Users, label: 'Users' },
 ];
 
+const Badge = ({ count, active }) => {
+  if (!count || count < 1) return null;
+  const label = count > 99 ? '99+' : String(count);
+  return (
+    <span
+      className={`min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold inline-flex items-center justify-center ${
+        active ? 'bg-brand-black/15 text-brand-black' : 'bg-red-500 text-white'
+      }`}
+    >
+      {label}
+    </span>
+  );
+};
+
 const AdminLayout = () => {
   const { admin, logout, isAuthenticated, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [badges, setBadges] = useState({ orders: 0, membership: 0, membershipApps: 0, lostCard: 0 });
+
+  const refreshBadges = useCallback(() => {
+    if (!isAuthenticated) return;
+    getStats()
+      .then((res) => {
+        const s = res.data?.stats || {};
+        const orders = Number(s.pendingOrders) || 0;
+        const membershipApps = Number(s.pendingMembershipApps) || 0;
+        const lostCard = Number(s.pendingLostCardApps) || 0;
+        setBadges({
+          orders,
+          membershipApps,
+          lostCard,
+          membership: membershipApps + lostCard,
+        });
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    refreshBadges();
+    const interval = setInterval(refreshBadges, 60_000);
+    const onFocus = () => refreshBadges();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isAuthenticated, refreshBadges]);
 
   if (loading) {
     return (
@@ -45,15 +88,19 @@ const AdminLayout = () => {
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
+  const badgeFor = (key) => {
+    if (key === 'orders') return badges.orders;
+    if (key === 'membership') return badges.membership;
+    return 0;
+  };
+
   const Sidebar = () => (
     <div className="flex flex-col h-full">
       <div className="px-5 py-6 border-b border-white/10">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-brand-gold rounded-lg flex items-center justify-center font-bold text-brand-black text-sm">
-            UC
-          </div>
+          <img src="/logo.png?v=20261005" alt="Nogor Car" className="h-6 w-auto max-w-[7.5rem] object-contain" />
           <div>
-            <p className="font-semibold text-white text-sm">UrbanCart</p>
+            <p className="font-semibold text-white text-sm">Nogor Car</p>
             <p className="text-xs text-neutral-500">Admin Panel</p>
           </div>
         </div>
@@ -73,8 +120,24 @@ const AdminLayout = () => {
               }`
             }
           >
-            <l.icon size={18} />
-            {l.label}
+            {({ isActive }) => (
+              <>
+                <l.icon size={18} />
+                <span className="flex-1">{l.label}</span>
+                {l.badgeKey === 'membership' && (badges.membershipApps > 0 || badges.lostCard > 0) ? (
+                  <span className="flex items-center gap-1 shrink-0">
+                    {badges.membershipApps > 0 && (
+                      <Badge count={badges.membershipApps} active={isActive} />
+                    )}
+                    {badges.lostCard > 0 && (
+                      <Badge count={badges.lostCard} active={isActive} />
+                    )}
+                  </span>
+                ) : l.badgeKey ? (
+                  <Badge count={badgeFor(l.badgeKey)} active={isActive} />
+                ) : null}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -116,7 +179,7 @@ const AdminLayout = () => {
           <button className="lg:hidden p-2 rounded-lg hover:bg-neutral-100" onClick={() => setSidebarOpen(true)}>
             <Menu size={20} />
           </button>
-          <h1 className="font-semibold text-sm sm:text-base">UrbanCart Admin</h1>
+          <h1 className="font-semibold text-sm sm:text-base">Nogor Car Admin</h1>
         </header>
         <main className="p-4 sm:p-6">
           <Outlet />

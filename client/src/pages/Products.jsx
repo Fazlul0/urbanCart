@@ -1,11 +1,13 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Filter, X, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, X, Search, Loader2 } from 'lucide-react';
 import ProductCard from '../components/product/ProductCard';
 import { ProductCardSkeleton } from '../components/ui/Skeleton';
 import { getProducts, getCategories } from '../services/api';
 import { debounce } from '../utils/helpers';
+
+const PAGE_SIZE = 12;
 
 const Products = ({ productType = 'general' }) => {
   const isFood = productType === 'food';
@@ -14,7 +16,10 @@ const Products = ({ productType = 'general' }) => {
   const [categories, setCategories] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const sentinelRef = useRef(null);
+  const loadingMoreRef = useRef(false);
 
   const filters = {
     search: searchParams.get('search') || '',
@@ -23,7 +28,6 @@ const Products = ({ productType = 'general' }) => {
     maxPrice: searchParams.get('maxPrice') || '',
     availability: searchParams.get('availability') || '',
     sort: searchParams.get('sort') || 'newest',
-    page: searchParams.get('page') || '1',
     freeDelivery: searchParams.get('freeDelivery') || '',
   };
 
@@ -31,16 +35,15 @@ const Products = ({ productType = 'general' }) => {
     const next = new URLSearchParams(searchParams);
     if (value) next.set(key, value);
     else next.delete(key);
-    if (key !== 'page') next.delete('page');
+    next.delete('page');
     setSearchParams(next);
   };
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    try {
+  const buildParams = useCallback(
+    (page) => {
       const params = {
-        page: filters.page,
-        limit: 12,
+        page,
+        limit: PAGE_SIZE,
         sort: filters.sort,
         type: productType,
       };
@@ -50,26 +53,55 @@ const Products = ({ productType = 'general' }) => {
       if (filters.maxPrice) params.maxPrice = filters.maxPrice;
       if (filters.availability) params.availability = filters.availability;
       if (filters.freeDelivery === 'true') params.freeDelivery = 'true';
+      return params;
+    },
+    [
+      productType,
+      filters.sort,
+      filters.search,
+      filters.category,
+      filters.minPrice,
+      filters.maxPrice,
+      filters.availability,
+      filters.freeDelivery,
+    ]
+  );
 
-      const res = await getProducts(params);
-      setProducts(res.data.products);
-      setPagination(res.data.pagination);
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getProducts(buildParams(1));
+      setProducts(res.data.products || []);
+      setPagination(res.data.pagination || { page: 1, pages: 1, total: 0 });
     } catch {
       setProducts([]);
+      setPagination({ page: 1, pages: 1, total: 0 });
     } finally {
       setLoading(false);
     }
-  }, [
-    productType,
-    filters.page,
-    filters.sort,
-    filters.search,
-    filters.category,
-    filters.minPrice,
-    filters.maxPrice,
-    filters.availability,
-    filters.freeDelivery,
-  ]);
+  }, [buildParams]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMoreRef.current) return;
+    if (pagination.page >= pagination.pages) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    try {
+      const nextPage = pagination.page + 1;
+      const res = await getProducts(buildParams(nextPage));
+      const next = res.data.products || [];
+      setProducts((prev) => {
+        const seen = new Set(prev.map((p) => p._id));
+        return [...prev, ...next.filter((p) => !seen.has(p._id))];
+      });
+      setPagination(res.data.pagination || { page: nextPage, pages: pagination.pages, total: pagination.total });
+    } catch {
+      /* keep current list */
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [buildParams, loading, pagination.page, pagination.pages, pagination.total]);
 
   useEffect(() => {
     getCategories({ type: productType })
@@ -81,7 +113,29 @@ const Products = ({ productType = 'general' }) => {
     fetchProducts();
   }, [fetchProducts]);
 
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || loading) return undefined;
+    if (pagination.page >= pagination.pages) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMore();
+      },
+      { rootMargin: '280px 0px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loadMore, loading, pagination.page, pagination.pages]);
+
   const onSearchChange = debounce((value) => updateFilter('search', value), 400);
+
+  const activeCategory = categories.find((c) => c._id === filters.category);
+  const pageTitle = activeCategory
+    ? activeCategory.name
+    : isFood
+      ? 'Food Market'
+      : 'Shop All';
 
   const FilterPanel = () => (
     <div className="space-y-6">
@@ -188,24 +242,51 @@ const Products = ({ productType = 'general' }) => {
   return (
     <>
       <Helmet>
-        <title>{isFood ? 'Food Market' : 'Shop'} — UrbanCart</title>
+        <title>{pageTitle} — Nogor Car</title>
       </Helmet>
 
       <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h1 className="font-display text-4xl md:text-5xl mb-2">
-              {isFood ? 'Food Market' : 'Shop All'}
-            </h1>
+            <h1 className="font-display text-4xl md:text-5xl mb-2">{pageTitle}</h1>
             <p className="text-brand-muted">
               {pagination.total} {isFood ? 'item' : 'product'}
               {pagination.total !== 1 ? 's' : ''} found
-              {isFood ? ' · Order by piece or weight' : ''}
+              {activeCategory ? ` in ${activeCategory.name}` : ''}
+              {isFood && !activeCategory ? ' · Order by piece or weight' : ''}
             </p>
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => updateFilter('category', '')}
+                  className={`text-xs sm:text-sm px-3 py-1.5 rounded-full border transition ${
+                    !filters.category
+                      ? 'bg-brand-gold border-brand-gold text-brand-black font-medium'
+                      : 'border-brand-border text-brand-muted hover:border-brand-gold'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c._id}
+                    type="button"
+                    onClick={() => updateFilter('category', c._id)}
+                    className={`text-xs sm:text-sm px-3 py-1.5 rounded-full border transition ${
+                      filters.category === c._id
+                        ? 'bg-brand-gold border-brand-gold text-brand-black font-medium'
+                        : 'border-brand-border text-brand-muted hover:border-brand-gold'
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-8">
-            {/* Desktop filters */}
             <aside className="hidden lg:block w-64 shrink-0">
               <div className="sticky top-28 bg-white rounded-2xl border border-brand-border p-5">
                 <h3 className="font-medium mb-4 flex items-center gap-2">
@@ -250,61 +331,24 @@ const Products = ({ productType = 'general' }) => {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
-                  {products.map((p) => (
-                    <ProductCard key={p._id} product={p} />
-                  ))}
-                </div>
-              )}
-
-              {pagination.pages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-10">
-                  <button
-                    disabled={pagination.page <= 1}
-                    onClick={() => updateFilter('page', String(pagination.page - 1))}
-                    className="p-2 rounded-lg border border-brand-border disabled:opacity-40 hover:bg-white"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  {Array.from({ length: pagination.pages }, (_, i) => i + 1)
-                    .filter(
-                      (p) =>
-                        p === 1 ||
-                        p === pagination.pages ||
-                        Math.abs(p - pagination.page) <= 1
-                    )
-                    .map((p, idx, arr) => (
-                      <span key={p} className="flex items-center">
-                        {idx > 0 && arr[idx - 1] !== p - 1 && (
-                          <span className="px-1 text-brand-muted">…</span>
-                        )}
-                        <button
-                          onClick={() => updateFilter('page', String(p))}
-                          className={`w-10 h-10 rounded-lg text-sm font-medium ${
-                            p === pagination.page
-                              ? 'bg-brand-gold text-brand-black'
-                              : 'border border-brand-border hover:bg-white'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      </span>
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-2.5 sm:gap-6">
+                    {products.map((p) => (
+                      <ProductCard key={p._id} product={p} />
                     ))}
-                  <button
-                    disabled={pagination.page >= pagination.pages}
-                    onClick={() => updateFilter('page', String(pagination.page + 1))}
-                    className="p-2 rounded-lg border border-brand-border disabled:opacity-40 hover:bg-white"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </div>
+                  </div>
+                  <div ref={sentinelRef} className="h-10 flex items-center justify-center mt-6">
+                    {loadingMore ? (
+                      <Loader2 size={18} className="animate-spin text-brand-muted" aria-label="Loading more" />
+                    ) : null}
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile filter drawer */}
       {filtersOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setFiltersOpen(false)} />

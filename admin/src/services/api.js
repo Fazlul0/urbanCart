@@ -30,6 +30,16 @@ export const deleteCategory = (id, force = false) =>
 
 export const getMembershipSettings = () => api.get('/membership/settings');
 export const updateMembershipSettings = (data) => api.put('/membership/settings', data);
+export const getMembershipFacilities = (params) =>
+  api.get('/membership/facilities', { params: { all: '1', ...params } });
+export const createMembershipFacility = (data) => api.post('/membership/facilities', data);
+export const updateMembershipFacility = (id, data) => api.put(`/membership/facilities/${id}`, data);
+export const deleteMembershipFacility = (id) => api.delete(`/membership/facilities/${id}`);
+export const getMembershipFacilityShops = (id) =>
+  api.get(`/membership/facilities/${id}/shops`, { params: { all: '1' } });
+export const createMembershipShop = (data) => api.post('/membership/shops', data);
+export const updateMembershipShop = (id, data) => api.put(`/membership/shops/${id}`, data);
+export const deleteMembershipShop = (id) => api.delete(`/membership/shops/${id}`);
 
 export const getSiteSettings = () => api.get('/site/settings');
 export const updateSiteSettings = (data) => api.put('/site/settings', data);
@@ -38,11 +48,17 @@ export const getMembershipApplications = (params) =>
 export const updateMembershipApplication = (id, data) =>
   api.put(`/membership/applications/${id}`, data);
 
+export const getLostCardApplications = (params) =>
+  api.get('/membership/lost-card/applications', { params });
+export const updateLostCardApplication = (id, data) =>
+  api.put(`/membership/lost-card/applications/${id}`, data);
+
 export const uploadImage = (file) => {
   const form = new FormData();
   form.append('file', file);
   return api.post('/media/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
   });
 };
 

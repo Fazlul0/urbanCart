@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env, AuthUser } from '../lib/helpers';
-import { uid, mapUser } from '../lib/helpers';
+import { uid, mapUser, normalizeMobile as normalizeMobileHelper, mobilesMatch } from '../lib/helpers';
 import { hashPassword, verifyPassword, signToken } from '../lib/auth';
 import { protect } from '../middleware/auth';
 
@@ -8,8 +8,19 @@ type Vars = { user: AuthUser };
 const auth = new Hono<{ Bindings: Env; Variables: Vars }>();
 
 auth.post('/register', async (c) => {
-  const body = await c.req.json<{ name: string; email: string; password: string; mobile: string }>();
-  const { name, email, password, mobile } = body || {};
+  const body = await c.req.json<{
+    name: string;
+    email: string;
+    password: string;
+    mobile: string;
+    referralCode?: string;
+    profession?: string;
+  }>();
+  const name = String(body?.name || '').trim();
+  const email = String(body?.email || '').trim().toLowerCase();
+  const password = String(body?.password || '');
+  const mobile = String(body?.mobile || '').trim();
+  const profession = String(body?.profession || '').trim();
   if (!name || !email || !password || !mobile) {
     return c.json({ success: false, message: 'All fields are required' }, 400);
   }
@@ -18,18 +29,24 @@ auth.post('/register', async (c) => {
   }
 
   const existing = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?')
-    .bind(email.toLowerCase())
+    .bind(email)
     .first();
   if (existing) {
     return c.json({ success: false, message: 'Email already registered' }, 400);
   }
 
+  const rawReferral = String(body?.referralCode || '').trim();
+  const referredByNorm = normalizeMobileHelper(rawReferral) || rawReferral;
+  // Block self-referral; only persist when a different mobile was provided
+  const referredBy =
+    referredByNorm && !mobilesMatch(referredByNorm, mobile) ? referredByNorm : null;
+
   const id = uid();
   const hashed = await hashPassword(password);
   await c.env.DB.prepare(
-    `INSERT INTO users (id, name, email, password, mobile, role) VALUES (?, ?, ?, ?, ?, 'user')`
+    `INSERT INTO users (id, name, email, password, mobile, role, referred_by, profession) VALUES (?, ?, ?, ?, ?, 'user', ?, ?)`
   )
-    .bind(id, name.trim(), email.toLowerCase(), hashed, mobile.trim())
+    .bind(id, name, email, hashed, mobile, referredBy, profession || null)
     .run();
 
   const token = await signToken(id, c.env.JWT_SECRET);
@@ -38,26 +55,46 @@ auth.post('/register', async (c) => {
       success: true,
       message: 'Registration successful',
       token,
-      user: { id, name, email: email.toLowerCase(), mobile, role: 'user' },
+      user: mapUser({
+        id,
+        name,
+        email,
+        mobile,
+        role: 'user',
+        referred_by: referredBy,
+        profession,
+      }),
     },
     201
   );
 });
 
 auth.post('/login', async (c) => {
-  const { email, password } = await c.req.json<{ email: string; password: string }>();
+  const body = await c.req.json<{ email: string; password: string }>();
+  const email = String(body?.email || '').trim().toLowerCase();
+  const password = String(body?.password || '');
   if (!email || !password) {
     return c.json({ success: false, message: 'Email and password required' }, 400);
   }
 
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?')
-    .bind(email.toLowerCase())
+    .bind(email)
     .first<any>();
   if (!user || !(await verifyPassword(password, user.password))) {
     return c.json({ success: false, message: 'Invalid email or password' }, 401);
   }
   if (user.is_banned) {
     return c.json({ success: false, message: 'Your account has been banned' }, 403);
+  }
+
+  // Re-hash legacy broken password rows so future logins use the correct format
+  if (user.password.startsWith('pbkdf2$') && user.password.split('$').length < 3) {
+    const fixed = await hashPassword(password);
+    await c.env.DB.prepare(
+      `UPDATE users SET password = ?, updated_at = datetime('now') WHERE id = ?`
+    )
+      .bind(fixed, user.id)
+      .run();
   }
 
   const token = await signToken(user.id, c.env.JWT_SECRET);
@@ -70,24 +107,34 @@ auth.post('/login', async (c) => {
 });
 
 auth.post('/admin/login', async (c) => {
-  const { email, password } = await c.req.json<{ email: string; password: string }>();
+  const body = await c.req.json<{ email: string; password: string }>();
+  const email = String(body?.email || '').trim().toLowerCase();
+  const password = String(body?.password || '');
+  const adminEmail = String(c.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const adminPassword = String(c.env.ADMIN_PASSWORD || '');
 
-  if (email === c.env.ADMIN_EMAIL && password === c.env.ADMIN_PASSWORD) {
+  if (email && password && email === adminEmail && password === adminPassword) {
     let admin = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?')
-      .bind(c.env.ADMIN_EMAIL)
+      .bind(adminEmail)
       .first<any>();
+
+    const hashed = await hashPassword(adminPassword);
 
     if (!admin) {
       const id = uid();
-      const hashed = await hashPassword(c.env.ADMIN_PASSWORD);
       await c.env.DB.prepare(
         `INSERT INTO users (id, name, email, password, mobile, role) VALUES (?, 'Admin', ?, ?, '0000000000', 'admin')`
       )
-        .bind(id, c.env.ADMIN_EMAIL, hashed)
+        .bind(id, adminEmail, hashed)
         .run();
-      admin = { id, name: 'Admin', email: c.env.ADMIN_EMAIL, mobile: '0000000000', role: 'admin' };
-    } else if (admin.role !== 'admin') {
-      await c.env.DB.prepare(`UPDATE users SET role = 'admin' WHERE id = ?`).bind(admin.id).run();
+      admin = { id, name: 'Admin', email: adminEmail, mobile: '0000000000', role: 'admin' };
+    } else {
+      // Keep DB hash in sync with wrangler ADMIN_PASSWORD secret
+      await c.env.DB.prepare(
+        `UPDATE users SET password = ?, role = 'admin', updated_at = datetime('now') WHERE id = ?`
+      )
+        .bind(hashed, admin.id)
+        .run();
       admin.role = 'admin';
     }
 
@@ -101,7 +148,7 @@ auth.post('/admin/login', async (c) => {
   }
 
   const user = await c.env.DB.prepare(`SELECT * FROM users WHERE email = ? AND role = 'admin'`)
-    .bind(email?.toLowerCase())
+    .bind(email)
     .first<any>();
   if (!user || !(await verifyPassword(password, user.password))) {
     return c.json({ success: false, message: 'Invalid admin credentials' }, 401);

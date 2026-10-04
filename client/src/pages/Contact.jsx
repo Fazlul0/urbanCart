@@ -5,7 +5,7 @@ import FacebookIcon from '../components/ui/FacebookIcon';
 const Contact = () => (
   <>
     <Helmet>
-      <title>Contact — UrbanCart</title>
+      <title>Contact — Nogor Car</title>
     </Helmet>
     <div className="pt-6 pb-16">
       <div className="container-uc px-4 sm:px-6 lg:px-8">
@@ -23,25 +23,25 @@ const Contact = () => (
               icon: MessageCircle,
               title: 'WhatsApp',
               desc: '+880 1700-000000',
-              href: 'https://wa.me/8801700000000',
+              href: 'https://wa.me/8801862234253',
             },
             {
               icon: FacebookIcon,
               title: 'Facebook',
-              desc: 'facebook.com/urbancart',
+              desc: 'facebook.com/nogorcar',
               href: 'https://facebook.com',
             },
             {
               icon: Phone,
               title: 'Messenger',
               desc: 'Chat with us',
-              href: 'https://m.me/urbancart',
+              href: 'https://m.me/nogorcar',
             },
             {
               icon: Mail,
               title: 'Email',
-              desc: 'hello@urbancart.com',
-              href: 'mailto:hello@urbancart.com',
+              desc: 'hello@nogorcar.store',
+              href: 'mailto:hello@nogorcar.store',
             },
             {
               icon: Phone,

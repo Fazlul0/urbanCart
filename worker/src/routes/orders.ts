@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env, AuthUser } from '../lib/helpers';
-import { uid, mapOrder, deliveryCharge, parseJson } from '../lib/helpers';
+import { uid, mapOrder, resolveDeliveryCharge, parseJson, normalizeMobile, mobilesMatch } from '../lib/helpers';
 import { protect, adminOnly } from '../middleware/auth';
 
 type Vars = { user: AuthUser };
@@ -62,10 +62,22 @@ orders.post('/', protect, async (c) => {
     subtotal += row.price * row.quantity;
   }
 
-  const charge = hasFreeDelivery ? 0 : deliveryCharge(c.env);
+  const charge = hasFreeDelivery ? 0 : await resolveDeliveryCharge(c.env.DB, c.env);
   const id = uid();
   const orderNumber = `UC${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 900 + 100)}`;
   const history = [{ status: 'pending', note: 'Order placed', updatedAt: new Date().toISOString() }];
+
+  // Prefer account referred_by (from registration), then form / body referral
+  const fromAccount = normalizeMobile(String((user as any).referred_by || '').trim());
+  const fromForm = normalizeMobile(
+    String(addr.referenceNumber || body.referralCode || '').trim()
+  );
+  let referenceNumber = fromAccount || fromForm;
+  // Block self-referral
+  if (referenceNumber && mobilesMatch(referenceNumber, user.mobile || '')) {
+    referenceNumber = '';
+  }
+  const deliveryAddress = { ...addr, referenceNumber };
 
   await c.env.DB.prepare(
     `INSERT INTO orders
@@ -77,7 +89,7 @@ orders.post('/', protect, async (c) => {
       user.id,
       orderNumber,
       JSON.stringify(items),
-      JSON.stringify(addr),
+      JSON.stringify(deliveryAddress),
       body.orderNotes || null,
       subtotal,
       charge,
@@ -100,6 +112,7 @@ orders.post('/', protect, async (c) => {
     await c.env.DB.prepare('SELECT * FROM orders WHERE id = ?').bind(id).first(),
     user
   );
+
   return c.json({ success: true, message: 'Order placed successfully', order }, 201);
 });
 
@@ -111,6 +124,56 @@ orders.get('/my', protect, async (c) => {
     .bind(user.id)
     .all();
   return c.json({ success: true, orders: (results || []).map((r) => mapOrder(r)) });
+});
+
+orders.get('/my-referrals', protect, async (c) => {
+  const user = c.get('user');
+  const mobile = normalizeMobile(user.mobile || '');
+  if (!mobile) {
+    return c.json({ success: true, total: 0, referralCode: '', referrals: [] });
+  }
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT o.*, u.name as buyer_name, u.mobile as buyer_mobile
+     FROM orders o
+     LEFT JOIN users u ON u.id = o.user_id
+     WHERE o.user_id != ?
+     ORDER BY o.created_at DESC
+     LIMIT 300`
+  )
+    .bind(user.id)
+    .all();
+
+  const referrals = (results || [])
+    .map((row: any) => {
+      const addr = parseJson<any>(row.delivery_address_json, {});
+      const refRaw = addr.referenceNumber || addr.referralCode || '';
+      if (!refRaw || !mobilesMatch(refRaw, mobile)) return null;
+      const items = parseJson<any[]>(row.items_json, []);
+      return {
+        _id: row.id,
+        orderNumber: row.order_number,
+        status: row.status,
+        total: row.total,
+        createdAt: row.created_at,
+        buyerName: row.buyer_name || addr.fullName || 'Customer',
+        buyerMobile: row.buyer_mobile || addr.mobile || '',
+        products: items.map((i: any) => ({
+          name: i.name,
+          quantity: i.quantity,
+          price: i.price,
+          image: i.image || '',
+        })),
+      };
+    })
+    .filter(Boolean);
+
+  return c.json({
+    success: true,
+    total: referrals.length,
+    referralCode: mobile || user.mobile || '',
+    referrals,
+  });
 });
 
 orders.get('/my/:id', protect, async (c) => {
@@ -136,9 +199,7 @@ orders.get('/', protect, adminOnly, async (c) => {
     binds.push(status);
   }
   if (search) {
-    where.push(
-      `(o.order_number LIKE ? OR o.delivery_address_json LIKE ?)`
-    );
+    where.push(`(o.order_number LIKE ? OR o.delivery_address_json LIKE ?)`);
     const s = `%${search}%`;
     binds.push(s, s);
   }
@@ -152,7 +213,7 @@ orders.get('/', protect, adminOnly, async (c) => {
     )?.total || 0;
 
   const { results } = await c.env.DB.prepare(
-    `SELECT o.*, u.name as u_name, u.email as u_email, u.mobile as u_mobile, u.id as u_id
+    `SELECT o.*, u.name as u_name, u.email as u_email, u.mobile as u_mobile, u.id as u_id, u.referred_by as u_referred_by
      FROM orders o LEFT JOIN users u ON u.id = o.user_id
      WHERE ${whereSql}
      ORDER BY o.created_at DESC LIMIT ? OFFSET ?`
@@ -163,7 +224,13 @@ orders.get('/', protect, adminOnly, async (c) => {
   return c.json({
     success: true,
     orders: (results || []).map((r: any) =>
-      mapOrder(r, { id: r.u_id, name: r.u_name, email: r.u_email, mobile: r.u_mobile })
+      mapOrder(r, {
+        id: r.u_id,
+        name: r.u_name,
+        email: r.u_email,
+        mobile: r.u_mobile,
+        referred_by: r.u_referred_by,
+      })
     ),
     pagination: { page, limit, total, pages: Math.ceil(total / limit) || 1 },
   });
@@ -171,7 +238,7 @@ orders.get('/', protect, adminOnly, async (c) => {
 
 orders.get('/:id', protect, adminOnly, async (c) => {
   const row = await c.env.DB.prepare(
-    `SELECT o.*, u.name as u_name, u.email as u_email, u.mobile as u_mobile, u.id as u_id
+    `SELECT o.*, u.name as u_name, u.email as u_email, u.mobile as u_mobile, u.id as u_id, u.referred_by as u_referred_by
      FROM orders o LEFT JOIN users u ON u.id = o.user_id WHERE o.id = ?`
   )
     .bind(c.req.param('id'))
@@ -179,7 +246,13 @@ orders.get('/:id', protect, adminOnly, async (c) => {
   if (!row) return c.json({ success: false, message: 'Order not found' }, 404);
   return c.json({
     success: true,
-    order: mapOrder(row, { id: row.u_id, name: row.u_name, email: row.u_email, mobile: row.u_mobile }),
+    order: mapOrder(row, {
+      id: row.u_id,
+      name: row.u_name,
+      email: row.u_email,
+      mobile: row.u_mobile,
+      referred_by: row.u_referred_by,
+    }),
   });
 });
 
@@ -194,7 +267,11 @@ orders.put('/:id/status', protect, adminOnly, async (c) => {
   if (!row) return c.json({ success: false, message: 'Order not found' }, 404);
 
   const history = parseJson<any[]>(row.status_history_json, []);
-  history.push({ status, note: note || `Status changed to ${status}`, updatedAt: new Date().toISOString() });
+  history.push({
+    status,
+    note: note || `Status changed to ${status}`,
+    updatedAt: new Date().toISOString(),
+  });
 
   await c.env.DB.prepare(
     `UPDATE orders SET status = ?, status_history_json = ?, updated_at = datetime('now') WHERE id = ?`
@@ -203,7 +280,7 @@ orders.put('/:id/status', protect, adminOnly, async (c) => {
     .run();
 
   const updated = await c.env.DB.prepare(
-    `SELECT o.*, u.name as u_name, u.email as u_email, u.mobile as u_mobile, u.id as u_id
+    `SELECT o.*, u.name as u_name, u.email as u_email, u.mobile as u_mobile, u.id as u_id, u.referred_by as u_referred_by
      FROM orders o LEFT JOIN users u ON u.id = o.user_id WHERE o.id = ?`
   )
     .bind(row.id)
@@ -217,6 +294,7 @@ orders.put('/:id/status', protect, adminOnly, async (c) => {
       name: updated.u_name,
       email: updated.u_email,
       mobile: updated.u_mobile,
+      referred_by: updated.u_referred_by,
     }),
   });
 });

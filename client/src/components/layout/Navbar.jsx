@@ -58,7 +58,6 @@ const Navbar = () => {
   const links = [
     { to: '/', label: 'Home' },
     { to: '/products', label: 'Shop' },
-    { to: '/food', label: 'Food' },
     { to: '/about', label: 'About' },
     { to: '/contact', label: 'Contact' },
   ];

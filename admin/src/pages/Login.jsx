@@ -27,11 +27,11 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center px-4 bg-brand-black">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto bg-brand-gold rounded-xl flex items-center justify-center font-bold text-brand-black text-xl mb-4">
-            UC
+          <div className="mx-auto mb-4 inline-flex justify-center">
+            <img src="/logo.png?v=20261005" alt="Nogor Car" className="h-9 w-auto max-w-[10rem] object-contain" />
           </div>
           <h1 className="text-2xl font-semibold text-white">Admin Login</h1>
-          <p className="text-neutral-500 text-sm mt-1">UrbanCart Management Panel</p>
+          <p className="text-neutral-500 text-sm mt-1">Nogor Car Management Panel</p>
         </div>
         <form onSubmit={handleSubmit} className="card p-6 space-y-4">
           <div>
@@ -39,10 +39,11 @@ const Login = () => {
             <input
               type="email"
               required
+              autoComplete="username"
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm({ ...form, email: e.target.value.trim() })}
               className="input-field"
-              placeholder="admin@urbancart.com"
+              placeholder="admin@nogorcar.store"
             />
           </div>
           <div>
@@ -50,11 +51,16 @@ const Login = () => {
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="input-field"
             />
           </div>
+          <p className="text-[11px] text-neutral-500 leading-relaxed">
+            Use the admin panel URL only (not the store login). Email is case-insensitive;
+            do not add spaces after the password.
+          </p>
           <button type="submit" disabled={submitting} className="btn-primary w-full">
             {submitting ? 'Signing in...' : 'Sign In'}
           </button>

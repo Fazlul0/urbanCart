@@ -1,69 +1,44 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowRight,
-  Shield,
-  Truck,
-  Banknote,
-  BadgeCheck,
-  MessageCircle,
-  Phone,
-  Check,
-  CreditCard,
-  ShoppingBag,
-  User,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Loader2, ShoppingBag, User } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import {
-  getCategories,
-  getHeroImages,
-  getMembershipSettings,
-} from '../services/api';
-import FacebookIcon from '../components/ui/FacebookIcon';
+import { getCategories, getHeroImages, getProducts } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { formatBDT } from '../utils/helpers';
+import MembershipSection from '../components/membership/MembershipSection';
+import ProductCard from '../components/product/ProductCard';
+import { ProductCardSkeleton } from '../components/ui/Skeleton';
 
 const HERO_INTERVAL_MS = 5000;
-
-const whyUs = [
-  { icon: Shield, title: 'Premium Quality', desc: 'Curated accessories built to last' },
-  { icon: Truck, title: 'Fast Delivery', desc: 'Quick shipping across Bangladesh' },
-  { icon: Banknote, title: 'Cash On Delivery', desc: 'Pay when you receive your order' },
-  { icon: BadgeCheck, title: 'Trusted Products', desc: 'Genuine items, honest reviews' },
-];
+const PRODUCTS_PAGE_SIZE = 20;
 
 const Home = () => {
-  const { siteName, logoUrl } = useSiteSettings();
+  const { siteName } = useSiteSettings();
   const { isAuthenticated } = useAuth();
   const { cart } = useCart();
   const [categories, setCategories] = useState([]);
-  const [membership, setMembership] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsPages, setProductsPages] = useState(1);
   const [heroImages, setHeroImages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
-
-  const brandParts = (siteName || 'UrbanCart').trim().split(/\s+/);
-  const brandLast = brandParts.length > 1 ? brandParts.pop() : null;
-  const brandFirst = brandParts.length ? brandParts.join(' ') : siteName || 'UrbanCart';
-  const initials = (siteName || 'UC')
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const sentinelRef = useRef(null);
 
   useEffect(() => {
     Promise.all([
       getCategories({ type: 'general' }),
       getHeroImages().catch(() => ({ data: { images: [] } })),
-      getMembershipSettings().catch(() => null),
     ])
-      .then(([catRes, heroRes, memRes]) => {
-        setCategories(catRes.data.categories || []);
-        setMembership(memRes?.data?.settings || null);
+      .then(([catRes, heroRes]) => {
+        const list = [...(catRes.data.categories || [])].sort(
+          (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name)
+        );
+        setCategories(list);
         const slides = (heroRes.data.images || []).map((img) => ({
           url: img.url,
           alt: img.alt || siteName,
@@ -74,7 +49,63 @@ const Home = () => {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    getProducts({ type: 'general', limit: PRODUCTS_PAGE_SIZE, page: 1, sort: 'newest', scope: 'home' })
+      .then((res) => {
+        setProducts(res.data.products || []);
+        setProductsPage(res.data.pagination?.page || 1);
+        setProductsPages(res.data.pagination?.pages || 1);
+      })
+      .catch(() => {
+        setProducts([]);
+        setProductsPage(1);
+        setProductsPages(1);
+      })
+      .finally(() => setProductsLoading(false));
   }, [siteName]);
+
+  const loadMoreProducts = useCallback(async () => {
+    if (loadingMore || productsPage >= productsPages) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = productsPage + 1;
+      const res = await getProducts({
+        type: 'general',
+        limit: PRODUCTS_PAGE_SIZE,
+        page: nextPage,
+        sort: 'newest',
+        scope: 'home',
+      });
+      const next = res.data.products || [];
+      setProducts((prev) => {
+        const seen = new Set(prev.map((p) => p._id));
+        return [...prev, ...next.filter((p) => !seen.has(p._id))];
+      });
+      setProductsPage(res.data.pagination?.page || nextPage);
+      setProductsPages(res.data.pagination?.pages || productsPages);
+    } catch {
+      /* keep current list */
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, productsPage, productsPages]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || productsLoading) return undefined;
+    if (productsPage >= productsPages) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          loadMoreProducts();
+        }
+      },
+      { rootMargin: '240px 0px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loadMoreProducts, productsLoading, productsPage, productsPages]);
 
   useEffect(() => {
     heroImages.forEach((img) => {
@@ -92,22 +123,18 @@ const Home = () => {
     return () => clearInterval(timer);
   }, [heroImages]);
 
-  const features = (membership?.features || []).slice(0, 3);
-
   return (
     <>
       <Helmet>
-        <title>{siteName} — Premium Men's Accessories</title>
+        <title>{siteName} — Car Accessories</title>
       </Helmet>
 
-      {/* Utility icons (replaces navbar on home) */}
       <div className="fixed top-3 right-3 sm:top-4 sm:right-5 z-50 flex items-center gap-1">
         <Link
-          to="/membership"
-          className="p-2 rounded-full bg-black/35 text-white backdrop-blur hover:bg-brand-gold hover:text-brand-black transition"
-          aria-label="Membership"
+          to="/products"
+          className="hidden sm:inline-flex text-xs font-medium px-3 py-1.5 rounded-full bg-black/35 text-white backdrop-blur hover:bg-brand-gold hover:text-brand-black transition"
         >
-          <CreditCard size={16} />
+          Shop
         </Link>
         <Link
           to="/cart"
@@ -139,8 +166,7 @@ const Home = () => {
         )}
       </div>
 
-      {/* Short hero — brand name + icon only */}
-      <section className="relative h-[22svh] min-h-[140px] max-h-[180px] sm:h-[20svh] sm:max-h-[200px] flex items-center overflow-hidden bg-brand-black">
+      <section className="relative h-[34svh] min-h-[180px] max-h-[240px] sm:h-[52svh] sm:min-h-[380px] sm:max-h-none overflow-hidden bg-brand-black">
         {heroImages.length > 0 && (
           <AnimatePresence mode="sync">
             <motion.div
@@ -154,48 +180,35 @@ const Home = () => {
               <img
                 src={heroImages[heroIndex]?.url}
                 alt={heroImages[heroIndex]?.alt || siteName}
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover object-center"
                 style={{ objectPosition: heroImages[heroIndex]?.position || 'center center' }}
               />
             </motion.div>
           </AnimatePresence>
         )}
 
-        <div className={`absolute inset-0 ${heroImages.length ? 'bg-brand-black/55' : 'bg-gradient-to-br from-neutral-900 via-brand-black to-neutral-950'}`} />
+        <div
+          className={`absolute inset-0 ${
+            heroImages.length
+              ? 'bg-brand-black/55'
+              : 'bg-gradient-to-br from-neutral-900 via-brand-black to-neutral-950'
+          }`}
+        />
 
-        <div className="relative container-uc w-full px-4 sm:px-6 lg:px-8">
+        <div className="absolute top-2 left-2 sm:top-3 sm:left-4 z-10 flex items-center gap-2.5 sm:gap-3.5 max-w-[calc(100%-6.5rem)] sm:max-w-[min(52%,28rem)]">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
-            className="flex items-center gap-2.5 sm:gap-3"
+            className="flex items-center gap-2.5 sm:gap-3.5 min-w-0"
           >
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt={siteName}
-                className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg object-contain shrink-0 bg-white/10"
-              />
-            ) : (
-              <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-brand-gold text-brand-black flex items-center justify-center font-display font-bold text-xs sm:text-sm shrink-0">
-                {initials}
-              </div>
-            )}
-            <h1 className="font-display text-[clamp(1.75rem,6vw,2.75rem)] leading-none text-white tracking-tight">
-              {brandLast ? (
-                <>
-                  {brandFirst}
-                  <span className="text-brand-gold"> {brandLast}</span>
-                </>
-              ) : (
-                <>
-                  {brandFirst.slice(0, Math.ceil(brandFirst.length / 2))}
-                  <span className="text-brand-gold">
-                    {brandFirst.slice(Math.ceil(brandFirst.length / 2))}
-                  </span>
-                </>
-              )}
-            </h1>
+            {/* Larger logo on home hero (mobile + desktop) */}
+            <img
+              src="/logo.png?v=20261005"
+              alt={siteName || 'Logo'}
+              className="h-16 w-auto max-w-[15.5rem] sm:h-20 sm:max-w-[18rem] md:h-24 md:max-w-[22rem] object-contain object-left shrink-0 drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]"
+            />
+            <h1 className="sr-only">{siteName || 'Home'}</h1>
           </motion.div>
         </div>
 
@@ -216,88 +229,30 @@ const Home = () => {
         )}
       </section>
 
-      {/* First screen: membership + categories + products */}
       <section className="bg-[#f7f6f4] pt-3 pb-6 sm:pt-4 sm:pb-8">
-        <div className="container-uc px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-5">
-          {/* Membership */}
-          {membership && (
-            <div>
-              <div className="flex items-end justify-between gap-3 mb-2.5">
-                <div>
-                  <p className="text-brand-gold text-[10px] sm:text-xs uppercase tracking-widest mb-0.5">
-                    Membership
-                  </p>
-                  <h2 className="font-display text-lg sm:text-xl text-brand-black">
-                    {membership.title || 'Membership Card'}
-                  </h2>
-                </div>
-                <Link
-                  to="/membership"
-                  className="text-xs sm:text-sm font-medium text-brand-black/70 hover:text-brand-gold inline-flex items-center gap-1 shrink-0"
-                >
-                  View details <ArrowRight size={14} />
-                </Link>
-              </div>
-              <Link
-                to="/membership"
-                className="block relative overflow-hidden rounded-xl bg-brand-black text-white"
-              >
-                <div className="relative min-h-[96px] sm:min-h-[110px] flex">
-                  {membership.cardImage && (
-                    <img
-                      src={membership.cardImage}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover opacity-50"
-                    />
-                  )}
-                  <div className="relative z-10 flex-1 p-3.5 sm:p-4 flex flex-col justify-between gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-brand-gold text-[10px] tracking-widest uppercase flex items-center gap-1">
-                          <CreditCard size={12} /> Member card
-                        </p>
-                        <p className="font-semibold text-sm sm:text-base mt-0.5 line-clamp-1">
-                          {membership.title}
-                        </p>
-                      </div>
-                      <p className="text-brand-gold text-sm font-semibold shrink-0">
-                        {formatBDT(membership.fee || 0)}
-                      </p>
-                    </div>
-                    {features.length > 0 && (
-                      <ul className="flex flex-wrap gap-x-3 gap-y-1">
-                        {features.map((f) => (
-                          <li
-                            key={f}
-                            className="flex items-center gap-1 text-[11px] sm:text-xs text-white/80"
-                          >
-                            <Check size={12} className="text-brand-gold shrink-0" />
-                            <span className="line-clamp-1">{f}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            </div>
-          )}
+        <div className="container-uc px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+          <MembershipSection />
 
-          {/* All categories */}
           <div>
-            <div className="mb-2.5">
+            <div className="mb-3 sm:mb-4">
               <p className="text-brand-gold text-[10px] sm:text-xs uppercase tracking-widest mb-0.5">
                 Collections
               </p>
               <h2 className="font-display text-lg sm:text-xl text-brand-black">Categories</h2>
+              <p className="text-xs sm:text-sm text-brand-muted mt-1">
+                Shop by accessory type
+              </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/3] rounded-xl bg-neutral-200 animate-pulse" />
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-12 sm:h-14 rounded-xl bg-neutral-200/80 animate-pulse"
+                  />
                 ))
               ) : categories.length === 0 ? (
-                <p className="col-span-2 sm:col-span-3 lg:col-span-4 text-sm text-brand-muted py-6 text-center rounded-xl border border-dashed border-brand-border">
+                <p className="col-span-2 text-sm text-brand-muted py-6 text-center rounded-xl border border-dashed border-brand-border">
                   No categories yet — add them from the admin panel.
                 </p>
               ) : (
@@ -305,100 +260,50 @@ const Home = () => {
                   <Link
                     key={cat._id}
                     to={`/products?category=${cat._id}`}
-                    className="group relative block aspect-[4/3] rounded-xl overflow-hidden bg-neutral-200"
+                    className="flex items-center justify-center gap-2 min-h-12 sm:min-h-14 px-3 py-3 rounded-xl bg-white border border-brand-border text-center text-sm sm:text-[15px] font-medium text-brand-black/85 hover:border-brand-gold hover:text-brand-black hover:bg-white transition shadow-sm"
                   >
-                    {cat.image ? (
+                    {cat.icon ? (
                       <img
-                        src={cat.image}
-                        alt={cat.name}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        src={cat.icon}
+                        alt=""
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-md object-cover shrink-0"
                       />
-                    ) : (
-                      <div className="w-full h-full bg-brand-black" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-brand-black/75 via-brand-black/10 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
-                      <h3 className="font-display text-sm sm:text-base text-white group-hover:text-brand-gold transition line-clamp-1">
-                        {cat.name}
-                      </h3>
-                    </div>
+                    ) : null}
+                    <span className="line-clamp-2">{cat.name}</span>
                   </Link>
                 ))
               )}
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="section-pad !py-12 sm:!py-16">
-        <div className="container-uc">
-          <div className="text-center mb-10">
-            <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Why {siteName}</p>
-            <h2 className="font-display text-3xl md:text-4xl text-brand-black">Why Choose Us</h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {whyUs.map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center p-4"
-              >
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-gold/15 flex items-center justify-center text-brand-gold">
-                  <item.icon size={24} />
-                </div>
-                <h3 className="font-display text-lg mb-1">{item.title}</h3>
-                <p className="text-brand-muted text-sm">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section-pad !py-12 sm:!py-16">
-        <div className="container-uc max-w-2xl">
-          <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">About Us</p>
-          <h2 className="font-display text-3xl md:text-4xl mb-5">Crafted for Modern Men</h2>
-          <p className="text-brand-muted leading-relaxed mb-6">
-            {siteName} is your destination for premium men's accessories in Bangladesh. From
-            precision watches to refined wallets and stylish car upgrades — we curate products
-            that blend quality, design, and everyday utility.
-          </p>
-          <Link to="/about" className="btn-dark">
-            Learn More <ArrowRight size={16} />
-          </Link>
-        </div>
-      </section>
-
-      <section className="section-pad !py-12 sm:!py-16 bg-white">
-        <div className="container-uc text-center">
-          <p className="text-brand-gold text-sm uppercase tracking-widest mb-2">Get In Touch</p>
-          <h2 className="font-display text-3xl md:text-4xl mb-4">Contact Us</h2>
-          <p className="text-brand-muted mb-8 max-w-md mx-auto">
-            Questions about an order or product? Reach us anytime.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="https://wa.me/8801700000000"
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary"
-            >
-              <MessageCircle size={18} /> WhatsApp
-            </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noreferrer"
-              className="btn-outline"
-            >
-              <FacebookIcon size={18} /> Facebook
-            </a>
-            <a href="https://m.me/urbancart" target="_blank" rel="noreferrer" className="btn-dark">
-              <Phone size={18} /> Messenger
-            </a>
+          <div>
+            <div className="mb-3 sm:mb-4">
+              <p className="text-brand-gold text-[10px] sm:text-xs uppercase tracking-widest mb-0.5">
+                Shop
+              </p>
+              <h2 className="font-display text-lg sm:text-xl text-brand-black">Products</h2>
+              <p className="text-xs sm:text-sm text-brand-muted mt-1">
+                Featured car accessories
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {productsLoading
+                ? Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)
+                : products.length === 0
+                  ? (
+                    <p className="col-span-2 md:col-span-3 lg:col-span-4 text-sm text-brand-muted py-8 text-center rounded-xl border border-dashed border-brand-border">
+                      No products yet — add them from the admin panel.
+                    </p>
+                    )
+                  : products.map((product) => (
+                      <ProductCard key={product._id} product={product} />
+                    ))}
+            </div>
+            <div ref={sentinelRef} className="h-8 flex items-center justify-center mt-4">
+              {loadingMore ? (
+                <Loader2 size={18} className="animate-spin text-brand-muted" aria-label="Loading more" />
+              ) : null}
+            </div>
           </div>
         </div>
       </section>

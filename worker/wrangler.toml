@@ -5,10 +5,15 @@ compatibility_flags = ["nodejs_compat"]
 account_id = "afeeea28ef4b58aad33f54322feaab68"
 workers_dev = true
 
+# Production API host
+[[routes]]
+pattern = "api.nogorcar.store"
+custom_domain = true
+
 [vars]
-CLIENT_URL = "https://urbancart-7he.pages.dev"
-ADMIN_URL = "https://urbancart-admin.pages.dev"
-DELIVERY_CHARGE = "80"
+CLIENT_URL = "https://nogorcar.store"
+ADMIN_URL = "https://admin.nogorcar.store"
+DELIVERY_CHARGE = "120"
 ADMIN_EMAIL = "admin@urbancart.com"
 ALLOW_SEED = "false"
 

@@ -1,0 +1,20 @@
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/logo.png
+  Cache-Control: public, max-age=0, must-revalidate
+
+/logo-512.png
+  Cache-Control: public, max-age=0, must-revalidate
+
+/logo-mark.png
+  Cache-Control: public, max-age=0, must-revalidate
+
+/favicon.ico
+  Cache-Control: public, max-age=0, must-revalidate
+
+/favicon-32.png
+  Cache-Control: public, max-age=0, must-revalidate
+
+/apple-touch-icon.png
+  Cache-Control: public, max-age=0, must-revalidate

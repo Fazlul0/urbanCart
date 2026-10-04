@@ -58,7 +58,7 @@ const Users = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && load(search)}
-          placeholder="Search name, email, mobile..."
+          placeholder="Search name, email, mobile, referral..."
           className="input-field pl-9"
         />
       </div>
@@ -70,6 +70,8 @@ const Users = () => {
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Mobile</th>
+              <th className="px-4 py-3 font-medium">Referred by</th>
+              <th className="px-4 py-3 font-medium">Profession</th>
               <th className="px-4 py-3 font-medium">Joined</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -78,13 +80,13 @@ const Users = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={8} className="px-4 py-12 text-center text-neutral-500">
                   Loading...
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={8} className="px-4 py-12 text-center text-neutral-500">
                   No users
                 </td>
               </tr>
@@ -94,6 +96,10 @@ const Users = () => {
                   <td className="px-4 py-3 font-medium">{u.name}</td>
                   <td className="px-4 py-3">{u.email}</td>
                   <td className="px-4 py-3">{u.mobile}</td>
+                  <td className="px-4 py-3">{u.referredBy || '—'}</td>
+                  <td className="px-4 py-3 text-neutral-600 max-w-[10rem] truncate" title={u.profession || ''}>
+                    {u.profession || '—'}
+                  </td>
                   <td className="px-4 py-3 text-neutral-500">
                     {new Date(u.createdAt).toLocaleDateString()}
                   </td>

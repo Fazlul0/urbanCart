@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import MainLayout from './layouts/MainLayout';
+import ReferralCapture from './components/ReferralCapture';
 
 const Home = lazy(() => import('./pages/Home'));
 const Products = lazy(() => import('./pages/Products'));
@@ -18,6 +19,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Membership = lazy(() => import('./pages/Membership'));
+const FacilityShops = lazy(() => import('./pages/FacilityShops'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const Loader = () => (
@@ -33,6 +35,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
+            <ReferralCapture />
             <Toaster
               position="top-right"
               toastOptions={{
@@ -51,12 +54,12 @@ function App() {
                 <Route element={<MainLayout />}>
                   <Route index element={<Home />} />
                   <Route path="products" element={<Products productType="general" />} />
-                  <Route path="food" element={<Products productType="food" />} />
                   <Route path="products/:id" element={<ProductDetails />} />
                   <Route path="cart" element={<Cart />} />
                   <Route path="checkout" element={<Checkout />} />
                   <Route path="dashboard/*" element={<Dashboard />} />
                   <Route path="membership" element={<Membership />} />
+                  <Route path="membership/facilities/:id" element={<FacilityShops />} />
                   <Route path="about" element={<About />} />
                   <Route path="contact" element={<Contact />} />
                   <Route path="*" element={<NotFound />} />

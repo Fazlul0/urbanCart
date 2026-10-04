@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { Env, AuthUser } from '../lib/helpers';
-import { uid, mapProduct, deliveryCharge } from '../lib/helpers';
+import { uid, mapProduct, resolveDeliveryCharge } from '../lib/helpers';
 import { protect } from '../middleware/auth';
 
 type Vars = { user: AuthUser };
@@ -51,7 +51,7 @@ async function buildCartResponse(db: D1Database, env: Env, cartId: string) {
 
   const subtotal = items.reduce((s, i) => s + i.lineTotal, 0);
   const hasFreeDelivery = items.some((i) => i.product?.freeDelivery);
-  const charge = !items.length || hasFreeDelivery ? 0 : deliveryCharge(env);
+  const charge = !items.length || hasFreeDelivery ? 0 : await resolveDeliveryCharge(db, env);
 
   return {
     items,

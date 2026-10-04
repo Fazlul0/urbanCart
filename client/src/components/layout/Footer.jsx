@@ -1,121 +1,66 @@
 import { Link } from 'react-router-dom';
-import { MessageCircle, Phone, Mail, MapPin } from 'lucide-react';
-import Logo from '../ui/Logo';
-import FacebookIcon from '../ui/FacebookIcon';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 
+const isExternal = (url) => /^https?:\/\//i.test(url);
+
+const FooterLink = ({ label, url }) => {
+  const className =
+    'text-[10px] leading-snug sm:text-xs text-white/85 hover:text-brand-gold transition text-center sm:text-left break-words';
+  if (isExternal(url)) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className={className}>
+        {label}
+      </a>
+    );
+  }
+  return (
+    <Link to={url.startsWith('/') ? url : `/${url}`} className={className}>
+      {label}
+    </Link>
+  );
+};
+
 const Footer = () => {
-  const year = new Date().getFullYear();
-  const { siteName, tagline } = useSiteSettings();
+  const { footerLinks } = useSiteSettings();
+  const links =
+    Array.isArray(footerLinks) && footerLinks.length
+      ? footerLinks
+      : [
+          { label: 'ফিটনেস এ্যাপয়েন্টমেন্টের সময়সূচি', url: '/contact' },
+          { label: 'রেজিস্ট্রেশন ফি ও নবায়ন', url: '/contact' },
+          { label: 'ট্যাক্স টোকেন ও রুট পারমিট ফি', url: '/contact' },
+          { label: 'সার্ভিস চার্জ ও ডেলিভারি ফি', url: '/contact' },
+          { label: 'নিবন্ধিত মোটরযানের ফি', url: '/contact' },
+        ];
 
   return (
-    <footer className="bg-brand-black text-white mt-auto">
-      <div className="container-uc px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-          <div className="space-y-4">
-            <div className="[&_span]:text-white [&_.text-brand-gold]:text-brand-gold">
-              <Logo link={false} />
-            </div>
-            <p className="text-neutral-400 text-sm leading-relaxed">
-              {tagline ||
-                'Premium accessories curated for everyday style — delivered across Bangladesh.'}
-            </p>
-            <div className="flex gap-3">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noreferrer"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-gold hover:text-brand-black transition"
-                aria-label="Facebook"
-              >
-                <FacebookIcon size={18} />
-              </a>
-              <a
-                href="https://wa.me/8801700000000"
-                target="_blank"
-                rel="noreferrer"
-                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-brand-gold hover:text-brand-black transition"
-                aria-label="WhatsApp"
-              >
-                <MessageCircle size={18} />
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-display text-lg text-brand-gold mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-neutral-400">
-              {[
-                ['/', 'Home'],
-                ['/products', 'Shop All'],
-                ['/about', 'About Us'],
-                ['/contact', 'Contact'],
-                ['/login', 'Login'],
-              ].map(([to, label]) => (
-                <li key={to}>
-                  <Link to={to} className="hover:text-brand-gold transition">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display text-lg text-brand-gold mb-4">Categories</h4>
-            <ul className="space-y-2 text-sm text-neutral-400">
-              {['Watches', 'Wallets', 'Car Accessories', 'Sunglasses', 'Belts'].map((c) => (
-                <li key={c}>
-                  <Link to="/products" className="hover:text-brand-gold transition">
-                    {c}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display text-lg text-brand-gold mb-4">Contact</h4>
-            <ul className="space-y-3 text-sm text-neutral-400">
-              <li className="flex items-start gap-3">
-                <Phone size={16} className="text-brand-gold mt-0.5 shrink-0" />
-                <a href="tel:+8801700000000" className="hover:text-brand-gold">
-                  +880 1700-000000
-                </a>
-              </li>
-              <li className="flex items-start gap-3">
-                <Mail size={16} className="text-brand-gold mt-0.5 shrink-0" />
-                <a href="mailto:hello@urbancart.com" className="hover:text-brand-gold">
-                  hello@urbancart.com
-                </a>
-              </li>
-              <li className="flex items-start gap-3">
-                <MapPin size={16} className="text-brand-gold mt-0.5 shrink-0" />
-                <span>Dhaka, Bangladesh</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <MessageCircle size={16} className="text-brand-gold mt-0.5 shrink-0" />
-                <a
-                  href="https://m.me/urbancart"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hover:text-brand-gold"
+    <>
+      {/* Reserves space so page content is not hidden behind the fixed banner */}
+      <div className="h-[5.75rem] sm:h-11 shrink-0" aria-hidden />
+      <footer className="fixed bottom-0 inset-x-0 z-40 bg-brand-black text-white border-t border-white/10">
+        <nav
+          aria-label="Footer links"
+          className="container-uc px-3 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-11 grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-3 sm:gap-y-1"
+        >
+          {links.map((link, i) => (
+            <span
+              key={`${link.label}-${link.url}`}
+              className="flex items-center justify-center sm:justify-start min-w-0 px-1 py-0.5 sm:px-0 sm:py-0"
+            >
+              {i > 0 && (
+                <span
+                  className="hidden sm:inline text-white/25 select-none shrink-0 mr-3"
+                  aria-hidden
                 >
-                  Messenger
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-white/10">
-        <div className="container-uc px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-500">
-          <p>© {year} {siteName}. All rights reserved.</p>
-          <p>Cash on Delivery · Fast Delivery · Premium Quality</p>
-        </div>
-      </div>
-    </footer>
+                  |
+                </span>
+              )}
+              <FooterLink label={link.label} url={link.url} />
+            </span>
+          ))}
+        </nav>
+      </footer>
+    </>
   );
 };
 

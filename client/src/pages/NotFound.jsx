@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 const NotFound = () => (
   <>
     <Helmet>
-      <title>404 — UrbanCart</title>
+      <title>404 — Nogor Car</title>
     </Helmet>
     <div className="pt-6 pb-16 min-h-[70vh] flex items-center justify-center text-center px-4">
       <div>

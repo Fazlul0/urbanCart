@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { createOrder } from '../services/api';
 import { formatBDT, getThumbnail } from '../utils/helpers';
+import { getStoredReferral, normalizeReferralMobile } from '../utils/referral';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 const CheckoutForm = () => {
@@ -13,13 +14,15 @@ const CheckoutForm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const storedRef = getStoredReferral() || user?.referredBy || '';
+  const referralApplied = Boolean(storedRef);
   const [form, setForm] = useState({
     fullName: user?.address?.fullName || user?.name || '',
     mobile: user?.address?.mobile || user?.mobile || '',
     fullAddress: user?.address?.fullAddress || '',
     district: user?.address?.district || '',
     area: user?.address?.area || '',
-    postalCode: user?.address?.postalCode || '',
+    referenceNumber: storedRef || user?.address?.referenceNumber || '',
     orderNotes: '',
   });
 
@@ -33,6 +36,11 @@ const CheckoutForm = () => {
     }
     setLoading(true);
     try {
+      const referenceNumber =
+        normalizeReferralMobile(
+          user?.referredBy || getStoredReferral() || form.referenceNumber || ''
+        ) ||
+        String(user?.referredBy || getStoredReferral() || form.referenceNumber || '').trim();
       const res = await createOrder({
         deliveryAddress: {
           fullName: form.fullName,
@@ -40,10 +48,11 @@ const CheckoutForm = () => {
           fullAddress: form.fullAddress,
           district: form.district,
           area: form.area,
-          postalCode: form.postalCode,
+          referenceNumber,
         },
         orderNotes: form.orderNotes,
         paymentMethod: 'cash_on_delivery',
+        referralCode: referenceNumber,
       });
       await fetchCart();
       toast.success('Order placed successfully!');
@@ -69,7 +78,7 @@ const CheckoutForm = () => {
   return (
     <>
       <Helmet>
-        <title>Checkout — UrbanCart</title>
+        <title>Checkout — Nogor Car</title>
       </Helmet>
       <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
@@ -134,12 +143,26 @@ const CheckoutForm = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1.5 block">Postal Code</label>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      Reference / Referral number
+                      {referralApplied ? (
+                        <span className="ml-1.5 text-xs font-normal text-emerald-700">
+                          Referral applied
+                        </span>
+                      ) : (
+                        <span className="ml-1.5 text-xs font-normal text-brand-muted">
+                          (optional)
+                        </span>
+                      )}
+                    </label>
                     <input
-                      name="postalCode"
-                      value={form.postalCode}
+                      name="referenceNumber"
+                      value={form.referenceNumber}
                       onChange={onChange}
-                      className="input-field"
+                      className={`input-field ${referralApplied ? 'bg-neutral-50' : ''}`}
+                      placeholder="01XXXXXXXXX"
+                      inputMode="tel"
+                      readOnly={referralApplied}
                     />
                   </div>
                 </div>

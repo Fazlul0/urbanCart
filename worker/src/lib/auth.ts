@@ -31,20 +31,38 @@ function fromB64(str: string) {
 export async function hashPassword(password: string) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const hash = await deriveKey(password, salt);
-  return `pbkdf2$${b64(salt)}${b64(hash)}`;
+  // join avoids template-literal $ edge cases in bundlers
+  return ['pbkdf2', b64(salt), b64(hash)].join('$');
 }
 
 export async function verifyPassword(password: string, stored: string) {
-  if (!stored.startsWith('pbkdf2$')) return false;
-  const [, saltB64, hashB64] = stored.split('$');
-  if (!saltB64 || !hashB64) return false;
-  const salt = fromB64(saltB64);
-  const expected = fromB64(hashB64);
-  const actual = await deriveKey(password, salt);
-  if (actual.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < actual.length; i++) diff |= actual[i] ^ expected[i];
-  return diff === 0;
+  if (!stored || !stored.startsWith('pbkdf2$')) return false;
+  const parts = stored.split('$');
+  let saltB64 = '';
+  let hashB64 = '';
+
+  if (parts.length >= 3 && parts[1] && parts[2]) {
+    saltB64 = parts[1];
+    hashB64 = parts.slice(2).join('$');
+  } else if (parts.length === 2 && parts[1]?.length > 24) {
+    // Legacy broken format (missing $ between salt and hash)
+    saltB64 = parts[1].slice(0, 24);
+    hashB64 = parts[1].slice(24);
+  } else {
+    return false;
+  }
+
+  try {
+    const salt = fromB64(saltB64);
+    const expected = fromB64(hashB64);
+    const actual = await deriveKey(password, salt);
+    if (actual.length !== expected.length) return false;
+    let diff = 0;
+    for (let i = 0; i < actual.length; i++) diff |= actual[i] ^ expected[i];
+    return diff === 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function signToken(userId: string, secret: string) {

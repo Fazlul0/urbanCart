@@ -39,7 +39,8 @@ export const changePassword = (data) => api.put('/auth/password', data);
 // Products
 export const getProducts = (params) => api.get('/products', { params });
 export const getProduct = (id) => api.get(`/products/${id}`);
-export const getRelatedProducts = (id) => api.get(`/products/${id}/related`);
+export const getRelatedProducts = (id, params) =>
+  api.get(`/products/${id}/related`, { params: { limit: 24, ...params } });
 
 // Categories
 export const getCategories = (params) => api.get('/categories', { params });
@@ -60,6 +61,10 @@ export const uploadImage = (file) => {
 export const getMembershipSettings = () => api.get('/membership/settings');
 export const applyMembership = (data) => api.post('/membership/apply', data);
 export const getMyMembershipApplications = () => api.get('/membership/my');
+export const getMembershipFacilities = (params) => api.get('/membership/facilities', { params });
+export const getMembershipFacility = (id) => api.get(`/membership/facilities/${id}`);
+export const getMembershipFacilityShops = (id, params) =>
+  api.get(`/membership/facilities/${id}/shops`, { params });
 
 // Site branding
 export const getSiteSettings = () => api.get('/site/settings');
@@ -77,6 +82,10 @@ export const clearCart = () => api.delete('/cart/clear');
 export const createOrder = (data) => api.post('/orders', data);
 export const getMyOrders = () => api.get('/orders/my');
 export const getMyOrder = (id) => api.get(`/orders/my/${id}`);
+export const getMyReferrals = () => api.get('/orders/my-referrals');
+
+export const applyLostCard = (data) => api.post('/membership/lost-card/apply', data);
+export const getMyLostCardApplications = () => api.get('/membership/lost-card/my');
 
 // Reviews
 export const getProductReviews = (productId) =>

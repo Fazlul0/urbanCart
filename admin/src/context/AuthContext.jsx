@@ -36,7 +36,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await api.adminLogin({ email, password });
+    const res = await api.adminLogin({
+      email: String(email || '').trim(),
+      password: String(password || ''),
+    });
     if (res.data.user.role !== 'admin') throw new Error('Not authorized');
     localStorage.setItem('uc_admin_token', res.data.token);
     localStorage.setItem('uc_admin_user', JSON.stringify(res.data.user));

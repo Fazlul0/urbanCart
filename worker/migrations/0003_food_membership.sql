@@ -33,7 +33,7 @@ VALUES (
   'UrbanCart Gold Membership',
   'Exclusive perks for loyal customers',
   999,
-  '["Free delivery on all orders","Member-only discounts","Priority customer support","Early access to new products"]',
+  '["🚚 **ফ্রি ডেলিভারি**\nসব অর্ডারে বিনামূল্যে ডেলিভারি সুবিধা","🏷️ **সদস্য ছাড়**\nমেম্বারদের জন্য বিশেষ ডিসকাউন্ট ও অফার","🎧 **অগ্রাধিকার সাপোর্ট**\nপ্রাধান্যভিত্তিক কাস্টমার সাপোর্ট","✨ **নতুন পণ্যে আগে সুযোগ**\nনতুন পণ্যে আগেই অ্যাক্সেস"]',
   1
 );
 

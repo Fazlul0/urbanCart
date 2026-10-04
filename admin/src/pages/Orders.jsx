@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getOrders, getOrder, updateOrderStatus } from '../services/api';
-import { formatBDT, STATUS_COLORS } from '../utils/helpers';
+import { formatBDT, STATUS_COLORS, orderReferralPhone } from '../utils/helpers';
 
 const STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
 
@@ -47,7 +47,7 @@ export const OrdersList = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && load()}
-            placeholder="Search order #, name, mobile..."
+            placeholder="Search order #, name, mobile, referral..."
             className="input-field pl-9"
           />
         </div>
@@ -71,6 +71,7 @@ export const OrdersList = () => {
             <tr className="text-left text-neutral-500">
               <th className="px-4 py-3 font-medium">Order</th>
               <th className="px-4 py-3 font-medium">Customer</th>
+              <th className="px-4 py-3 font-medium">Referral</th>
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Date</th>
@@ -79,13 +80,13 @@ export const OrdersList = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
                   Loading...
                 </td>
               </tr>
             ) : orders.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-neutral-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-neutral-500">
                   No orders
                 </td>
               </tr>
@@ -100,6 +101,13 @@ export const OrdersList = () => {
                   <td className="px-4 py-3">
                     <p>{o.user?.name || o.deliveryAddress?.fullName}</p>
                     <p className="text-xs text-neutral-500">{o.deliveryAddress?.mobile}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    {orderReferralPhone(o) ? (
+                      <p className="font-medium">{orderReferralPhone(o)}</p>
+                    ) : (
+                      <span className="text-neutral-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-medium">{formatBDT(o.total)}</td>
                   <td className="px-4 py-3">
@@ -214,6 +222,12 @@ export const OrderDetail = () => {
             {order.user && (
               <p className="text-neutral-500 mt-1">{order.user.email}</p>
             )}
+            <p className="mt-2">
+              <span className="text-neutral-500">Referral phone: </span>
+              <span className="font-medium">
+                {orderReferralPhone(order) || '—'}
+              </span>
+            </p>
             {order.orderNotes && (
               <p className="mt-2 text-neutral-500">Note: {order.orderNotes}</p>
             )}

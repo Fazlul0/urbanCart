@@ -19,7 +19,7 @@ const Cart = () => {
     return (
       <>
         <Helmet>
-          <title>Cart — UrbanCart</title>
+          <title>Cart — Nogor Car</title>
         </Helmet>
         <div className="pt-6 pb-16 text-center">
           <div className="container-uc px-4 py-20">
@@ -38,7 +38,7 @@ const Cart = () => {
   return (
     <>
       <Helmet>
-        <title>Cart — UrbanCart</title>
+        <title>Cart — Nogor Car</title>
       </Helmet>
       <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
@@ -82,9 +82,10 @@ const Cart = () => {
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center border border-brand-border rounded-lg overflow-hidden">
                         <button
-                          onClick={() =>
-                            updateItem(item.product._id, Math.max(1, item.quantity - 1))
-                          }
+                          onClick={() => {
+                            const min = Number(item.product.minOrder) || 1;
+                            updateItem(item.product._id, Math.max(min, item.quantity - 1));
+                          }}
                           className="p-2 hover:bg-neutral-50"
                         >
                           <Minus size={14} />

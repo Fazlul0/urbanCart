@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, Routes, Route, NavLink, useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
-import { User, Package, LogOut, ChevronRight } from 'lucide-react';
+import { User, Package, LogOut, ChevronRight, Users } from 'lucide-react';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
-import { getMyOrders, getMyOrder, updateProfile } from '../services/api';
+import { getMyOrders, getMyOrder, updateProfile, getMyReferrals } from '../services/api';
 import { formatBDT, ORDER_STATUS_COLORS } from '../utils/helpers';
+import DeliveryTracker from '../components/order/DeliveryTracker';
 
 const ProfileTab = () => {
   const { user, updateUser } = useAuth();
@@ -70,6 +71,19 @@ const ProfileTab = () => {
           required
         />
       </div>
+      {(user?.mobile || form.mobile) && (
+        <div className="rounded-xl border border-brand-gold/40 bg-brand-gold/5 px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-1">
+            Your referral number
+          </p>
+          <p className="font-mono text-lg font-semibold text-brand-black">
+            {user?.mobile || form.mobile}
+          </p>
+          <p className="text-xs text-brand-muted mt-1">
+            Share products or membership — friends use this number as referral.
+          </p>
+        </div>
+      )}
       <div>
         <label className="text-sm font-medium mb-1.5 block">Address</label>
         <textarea
@@ -215,6 +229,10 @@ const OrderDetailTab = () => {
           </span>
         </div>
 
+        <div className="mb-6 px-1 sm:px-2 border border-brand-border rounded-xl bg-brand-cream/60">
+          <DeliveryTracker status={order.status} />
+        </div>
+
         <div className="space-y-3 mb-6">
           {order.items.map((item, i) => (
             <div key={i} className="flex gap-3 items-center">
@@ -279,6 +297,122 @@ const OrderDetailTab = () => {
   );
 };
 
+const ReferralsTab = () => {
+  const [data, setData] = useState({ total: 0, referrals: [], referralCode: '' });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMyReferrals()
+      .then((res) =>
+        setData({
+          total: res.data.total || 0,
+          referrals: res.data.referrals || [],
+          referralCode: res.data.referralCode || '',
+        })
+      )
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <div className="w-8 h-8 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white border border-brand-border rounded-2xl p-6 space-y-4">
+        <div>
+          <h2 className="font-display text-2xl mb-1">My Referrals</h2>
+          <p className="text-sm text-brand-muted">
+            Orders placed by customers who used your share link
+          </p>
+        </div>
+        {data.referralCode ? (
+          <div className="rounded-xl border border-brand-gold/40 bg-brand-gold/5 px-4 py-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-1">
+              Your referral number
+            </p>
+            <p className="font-mono text-2xl font-semibold text-brand-black tracking-wide">
+              {data.referralCode}
+            </p>
+            <p className="text-xs text-brand-muted mt-1.5">
+              This is your mobile — friends enter it at checkout or open your share link.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            Add a mobile number to your profile to get a referral code.
+          </p>
+        )}
+        <div>
+          <p className="text-3xl font-semibold text-brand-gold">{data.total}</p>
+          <p className="text-sm text-brand-muted mt-1">
+            {data.total === 1 ? 'referral order' : 'referral orders'}
+          </p>
+        </div>
+      </div>
+
+      {data.referrals.length === 0 ? (
+        <p className="text-brand-muted text-sm py-8 text-center border border-dashed border-brand-border rounded-2xl">
+          No referral orders yet. Share products or membership to start earning referrals.
+        </p>
+      ) : (
+        <ul className="space-y-4">
+          {data.referrals.map((r) => (
+            <li
+              key={r._id}
+              className="bg-white border border-brand-border rounded-2xl p-5 space-y-3"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium">{r.buyerName}</p>
+                  <p className="text-xs text-brand-muted">{r.buyerMobile}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">{r.orderNumber}</p>
+                  <p className="text-xs text-brand-muted">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <ul className="space-y-2">
+                {(r.products || []).map((p, i) => (
+                  <li key={i} className="flex gap-3 items-center text-sm">
+                    {p.image ? (
+                      <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-medium">{p.name}</p>
+                      <p className="text-xs text-brand-muted">
+                        Qty {p.quantity} · {formatBDT(p.price)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex justify-between items-center text-sm pt-2 border-t border-brand-border gap-3">
+                <span
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${
+                    ORDER_STATUS_COLORS[r.status] || 'bg-neutral-100 text-neutral-700'
+                  }`}
+                >
+                  {r.status}
+                </span>
+                <span className="font-semibold text-brand-gold">{formatBDT(r.total)}</span>
+              </div>
+              <DeliveryTracker status={r.status} compact />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 const DashboardInner = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -291,7 +425,7 @@ const DashboardInner = () => {
   return (
     <>
       <Helmet>
-        <title>Dashboard — UrbanCart</title>
+        <title>Dashboard — Nogor Car</title>
       </Helmet>
       <div className="pt-6 pb-16">
         <div className="container-uc px-4 sm:px-6 lg:px-8">
@@ -305,6 +439,9 @@ const DashboardInner = () => {
               </NavLink>
               <NavLink to="/dashboard/orders" className={navClass}>
                 <Package size={16} /> My Orders
+              </NavLink>
+              <NavLink to="/dashboard/referrals" className={navClass}>
+                <Users size={16} /> Referrals
               </NavLink>
               <button
                 onClick={() => {
@@ -321,6 +458,7 @@ const DashboardInner = () => {
                 <Route index element={<ProfileTab />} />
                 <Route path="orders" element={<OrdersTab />} />
                 <Route path="orders/:orderId" element={<OrderDetailTab />} />
+                <Route path="referrals" element={<ReferralsTab />} />
               </Routes>
             </div>
           </div>
