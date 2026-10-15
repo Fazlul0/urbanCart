@@ -71,7 +71,19 @@ const ImageUploader = ({
       let toUpload = file;
       if (!video) {
         if (preset?.mode === 'resize') {
-          toUpload = await resizeImageFile(file, { maxWidth: preset.maxWidth });
+          const isLogo = fit === 'logo' || preset.format === 'png';
+          const format =
+            preset.format === 'png' ||
+            (fit === 'logo' && /png/i.test(file.type || file.name || ''))
+              ? 'png'
+              : 'jpeg';
+          // Logos: PNG + alpha, trim padding, cap height so tall logos stay compact.
+          toUpload = await resizeImageFile(file, {
+            maxWidth: preset.maxWidth,
+            maxHeight: preset.maxHeight || 0,
+            format: isLogo ? 'png' : preset.format || format,
+            trimEmpty: isLogo,
+          });
         } else if (preset?.mode === 'crop' || preset?.aspect) {
           toUpload = await fitImageFile(file, {
             aspect: preset.aspect,
@@ -199,8 +211,20 @@ const ImageUploader = ({
       </div>
 
       <div
-        className="relative w-full max-w-sm overflow-hidden rounded-lg border border-neutral-200 bg-neutral-900 outline-none focus-within:ring-2 focus-within:ring-brand-gold/40"
-        style={previewAspect}
+        className={`relative w-full max-w-sm overflow-hidden rounded-lg border border-neutral-200 outline-none focus-within:ring-2 focus-within:ring-brand-gold/40 ${
+          fit === 'logo' ? 'bg-neutral-100' : 'bg-neutral-900'
+        }`}
+        style={{
+          ...previewAspect,
+          ...(fit === 'logo'
+            ? {
+                backgroundImage:
+                  'linear-gradient(45deg,#e5e5e5 25%,transparent 25%),linear-gradient(-45deg,#e5e5e5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e5e5 75%),linear-gradient(-45deg,transparent 75%,#e5e5e5 75%)',
+                backgroundSize: '16px 16px',
+                backgroundPosition: '0 0,0 8px,8px -8px,-8px 0',
+              }
+            : {}),
+        }}
         onClick={() => zoneRef.current?.focus()}
       >
         {value ? (

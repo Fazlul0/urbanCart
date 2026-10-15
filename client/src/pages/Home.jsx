@@ -15,7 +15,7 @@ const HERO_INTERVAL_MS = 5000;
 const PRODUCTS_PAGE_SIZE = 20;
 
 const Home = () => {
-  const { siteName } = useSiteSettings();
+  const { siteName, logoUrl } = useSiteSettings();
   const { isAuthenticated } = useAuth();
   const { cart } = useCart();
   const [categories, setCategories] = useState([]);
@@ -127,6 +127,15 @@ const Home = () => {
     <>
       <Helmet>
         <title>{siteName} — Car Accessories</title>
+        <meta
+          name="description"
+          content={`${siteName} — car accessories and auto products for every ride. Cash on delivery across Bangladesh.`}
+        />
+        <meta property="og:title" content={`${siteName} — Car Accessories`} />
+        <meta
+          property="og:description"
+          content={`${siteName} — car accessories and auto products for every ride. Cash on delivery across Bangladesh.`}
+        />
       </Helmet>
 
       <div className="fixed top-3 right-3 sm:top-4 sm:right-5 z-50 flex items-center gap-1">
@@ -195,18 +204,17 @@ const Home = () => {
           }`}
         />
 
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-4 z-10 flex items-center gap-2.5 sm:gap-3.5 max-w-[calc(100%-6.5rem)] sm:max-w-[min(52%,28rem)]">
+        <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-5 z-10 max-w-[65%] sm:max-w-[20rem]">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
-            className="flex items-center gap-2.5 sm:gap-3.5 min-w-0"
+            className="min-w-0"
           >
-            {/* Larger logo on home hero (mobile + desktop) */}
             <img
-              src="/logo.png?v=20261005"
+              src={(logoUrl && String(logoUrl).trim()) || '/logo.png'}
               alt={siteName || 'Logo'}
-              className="h-16 w-auto max-w-[15.5rem] sm:h-20 sm:max-w-[18rem] md:h-24 md:max-w-[22rem] object-contain object-left shrink-0 drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]"
+              className="h-[4.5rem] w-auto max-h-[4.5rem] max-w-[14.5rem] sm:h-20 sm:max-h-20 sm:max-w-[18rem] md:h-[5.5rem] md:max-h-[5.5rem] md:max-w-[20rem] object-contain object-left shrink-0 drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]"
             />
             <h1 className="sr-only">{siteName || 'Home'}</h1>
           </motion.div>
@@ -230,7 +238,7 @@ const Home = () => {
       </section>
 
       <section className="bg-[#f7f6f4] pt-3 pb-6 sm:pt-4 sm:pb-8">
-        <div className="container-uc px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 w-full min-w-0 overflow-x-hidden">
           <MembershipSection />
 
           <div>

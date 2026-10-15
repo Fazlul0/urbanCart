@@ -33,8 +33,8 @@ const Membership = () => {
       <Helmet>
         <title>{title} — Nogor Car</title>
       </Helmet>
-      <div className="pt-6 pb-16">
-        <div className="container-uc px-4 sm:px-6 lg:px-8 max-w-4xl">
+      <div className="pt-6 pb-16 w-full min-w-0 overflow-x-hidden">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 max-w-4xl w-full min-w-0">
           <MembershipSection />
         </div>
       </div>

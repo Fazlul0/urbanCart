@@ -37,10 +37,10 @@ const Footer = () => {
     <>
       {/* Reserves space so page content is not hidden behind the fixed banner */}
       <div className="h-[5.75rem] sm:h-11 shrink-0" aria-hidden />
-      <footer className="fixed bottom-0 inset-x-0 z-40 bg-brand-black text-white border-t border-white/10">
+      <footer className="fixed bottom-0 inset-x-0 z-40 bg-brand-black text-white border-t border-white/10 max-w-[100vw] overflow-x-hidden">
         <nav
           aria-label="Footer links"
-          className="container-uc px-3 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-11 grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-3 sm:gap-y-1"
+          className="container-uc px-2 sm:px-6 lg:px-8 py-3 sm:py-0 sm:h-11 grid grid-cols-2 gap-x-2 gap-y-2 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-3 sm:gap-y-1 min-w-0"
         >
           {links.map((link, i) => (
             <span

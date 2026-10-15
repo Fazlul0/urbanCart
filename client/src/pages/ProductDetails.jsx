@@ -136,8 +136,8 @@ const ProductDetails = () => {
       </Helmet>
 
       {/* Extra bottom pad on mobile for sticky buy bar + footer */}
-      <div className="pt-3 sm:pt-6 pb-28 sm:pb-16 overflow-x-clip">
-        <div className="container-uc px-3 sm:px-6 lg:px-8 max-w-full">
+      <div className="pt-3 sm:pt-6 pb-28 sm:pb-16 w-full min-w-0 overflow-x-hidden">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 w-full max-w-full min-w-0">
           <div className="grid lg:grid-cols-2 gap-5 sm:gap-10 lg:gap-16">
             {/* Gallery — full image fits phone width, no crop */}
             <div className="min-w-0">

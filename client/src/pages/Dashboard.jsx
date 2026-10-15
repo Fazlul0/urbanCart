@@ -47,8 +47,8 @@ const ProfileTab = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-brand-border rounded-2xl p-6 space-y-4 max-w-xl">
-      <h2 className="font-display text-2xl mb-2">My Profile</h2>
+    <form onSubmit={handleSubmit} className="bg-white border border-brand-border rounded-2xl p-4 sm:p-6 space-y-4 max-w-xl w-full min-w-0">
+      <h2 className="font-display text-xl sm:text-2xl mb-2">My Profile</h2>
       <div>
         <label className="text-sm font-medium mb-1.5 block">Email</label>
         <input value={user?.email || ''} disabled className="input-field bg-neutral-50" />
@@ -93,7 +93,7 @@ const ProfileTab = () => {
           rows={2}
         />
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <input
           placeholder="District"
           value={form.district}
@@ -158,15 +158,15 @@ const OrdersTab = () => {
         <Link
           key={order._id}
           to={`/dashboard/orders/${order._id}`}
-          className="flex items-center justify-between gap-4 bg-white border border-brand-border rounded-2xl p-5 hover:shadow-md transition"
+          className="flex items-center justify-between gap-3 bg-white border border-brand-border rounded-2xl p-4 sm:p-5 hover:shadow-md transition min-w-0"
         >
-          <div>
-            <p className="font-medium">{order.orderNumber}</p>
-            <p className="text-sm text-brand-muted mt-1">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium truncate">{order.orderNumber}</p>
+            <p className="text-sm text-brand-muted mt-1 break-words">
               {new Date(order.createdAt).toLocaleDateString()} · {order.items.length} item(s)
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <span
               className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${
                 ORDER_STATUS_COLORS[order.status]
@@ -212,16 +212,16 @@ const OrderDetailTab = () => {
       <Link to="/dashboard/orders" className="text-sm text-brand-gold hover:underline">
         ← Back to Orders
       </Link>
-      <div className="bg-white border border-brand-border rounded-2xl p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-          <div>
-            <h2 className="font-display text-2xl">{order.orderNumber}</h2>
-            <p className="text-sm text-brand-muted mt-1">
+      <div className="bg-white border border-brand-border rounded-2xl p-4 sm:p-6 min-w-0 overflow-hidden">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl sm:text-2xl break-all">{order.orderNumber}</h2>
+            <p className="text-sm text-brand-muted mt-1 break-words">
               Placed on {new Date(order.createdAt).toLocaleString()}
             </p>
           </div>
           <span
-            className={`text-sm font-medium px-3 py-1 rounded-full capitalize ${
+            className={`text-sm font-medium px-3 py-1 rounded-full capitalize shrink-0 ${
               ORDER_STATUS_COLORS[order.status]
             }`}
           >
@@ -229,23 +229,23 @@ const OrderDetailTab = () => {
           </span>
         </div>
 
-        <div className="mb-6 px-1 sm:px-2 border border-brand-border rounded-xl bg-brand-cream/60">
+        <div className="mb-6 px-1 sm:px-2 border border-brand-border rounded-xl bg-brand-cream/60 overflow-hidden">
           <DeliveryTracker status={order.status} />
         </div>
 
         <div className="space-y-3 mb-6">
           {order.items.map((item, i) => (
-            <div key={i} className="flex gap-3 items-center">
+            <div key={i} className="flex gap-3 items-center min-w-0">
               {item.image && (
-                <img src={item.image} alt="" className="w-14 h-14 rounded-lg object-cover" />
+                <img src={item.image} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
               )}
-              <div className="flex-1">
-                <p className="font-medium text-sm">{item.name}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm break-words">{item.name}</p>
                 <p className="text-xs text-brand-muted">
                   {item.quantity} × {formatBDT(item.price)}
                 </p>
               </div>
-              <p className="font-medium text-sm">{formatBDT(item.price * item.quantity)}</p>
+              <p className="font-medium text-sm shrink-0">{formatBDT(item.price * item.quantity)}</p>
             </div>
           ))}
         </div>
@@ -282,9 +282,11 @@ const OrderDetailTab = () => {
             <h3 className="font-medium mb-3">Status History</h3>
             <ul className="space-y-2">
               {order.statusHistory.map((h, i) => (
-                <li key={i} className="text-sm flex gap-3">
-                  <span className="text-brand-gold capitalize font-medium w-24">{h.status}</span>
-                  <span className="text-brand-muted">
+                <li key={i} className="text-sm flex flex-col sm:flex-row gap-1 sm:gap-3 min-w-0">
+                  <span className="text-brand-gold capitalize font-medium sm:w-24 shrink-0">
+                    {h.status}
+                  </span>
+                  <span className="text-brand-muted break-words min-w-0">
                     {h.note} · {new Date(h.updatedAt).toLocaleString()}
                   </span>
                 </li>
@@ -323,28 +325,28 @@ const ReferralsTab = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white border border-brand-border rounded-2xl p-6 space-y-4">
-        <div>
-          <h2 className="font-display text-2xl mb-1">My Referrals</h2>
-          <p className="text-sm text-brand-muted">
+    <div className="space-y-6 w-full min-w-0">
+      <div className="bg-white border border-brand-border rounded-2xl p-4 sm:p-6 space-y-4 min-w-0 overflow-hidden">
+        <div className="min-w-0">
+          <h2 className="font-display text-xl sm:text-2xl mb-1">My Referrals</h2>
+          <p className="text-sm text-brand-muted break-words">
             Orders placed by customers who used your share link
           </p>
         </div>
         {data.referralCode ? (
-          <div className="rounded-xl border border-brand-gold/40 bg-brand-gold/5 px-4 py-4">
+          <div className="rounded-xl border border-brand-gold/40 bg-brand-gold/5 px-3 sm:px-4 py-4 min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-brand-muted mb-1">
               Your referral number
             </p>
-            <p className="font-mono text-2xl font-semibold text-brand-black tracking-wide">
+            <p className="font-mono text-xl sm:text-2xl font-semibold text-brand-black tracking-wide break-all">
               {data.referralCode}
             </p>
-            <p className="text-xs text-brand-muted mt-1.5">
+            <p className="text-xs text-brand-muted mt-1.5 break-words">
               This is your mobile — friends enter it at checkout or open your share link.
             </p>
           </div>
         ) : (
-          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 break-words">
             Add a mobile number to your profile to get a referral code.
           </p>
         )}
@@ -357,7 +359,7 @@ const ReferralsTab = () => {
       </div>
 
       {data.referrals.length === 0 ? (
-        <p className="text-brand-muted text-sm py-8 text-center border border-dashed border-brand-border rounded-2xl">
+        <p className="text-brand-muted text-sm py-8 text-center border border-dashed border-brand-border rounded-2xl px-3 break-words">
           No referral orders yet. Share products or membership to start earning referrals.
         </p>
       ) : (
@@ -365,28 +367,32 @@ const ReferralsTab = () => {
           {data.referrals.map((r) => (
             <li
               key={r._id}
-              className="bg-white border border-brand-border rounded-2xl p-5 space-y-3"
+              className="bg-white border border-brand-border rounded-2xl p-4 sm:p-5 space-y-3 min-w-0 overflow-hidden"
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium">{r.buyerName}</p>
-                  <p className="text-xs text-brand-muted">{r.buyerMobile}</p>
+              <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
+                <div className="min-w-0">
+                  <p className="font-medium break-words">{r.buyerName}</p>
+                  <p className="text-xs text-brand-muted break-all">{r.buyerMobile}</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">{r.orderNumber}</p>
-                  <p className="text-xs text-brand-muted">
+                <div className="text-left sm:text-right min-w-0">
+                  <p className="text-sm font-medium break-all">{r.orderNumber}</p>
+                  <p className="text-xs text-brand-muted break-words">
                     {new Date(r.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>
               <ul className="space-y-2">
                 {(r.products || []).map((p, i) => (
-                  <li key={i} className="flex gap-3 items-center text-sm">
+                  <li key={i} className="flex gap-3 items-start text-sm min-w-0">
                     {p.image ? (
-                      <img src={p.image} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                      <img
+                        src={p.image}
+                        alt=""
+                        className="w-10 h-10 rounded-lg object-cover shrink-0"
+                      />
                     ) : null}
                     <div className="flex-1 min-w-0">
-                      <p className="truncate font-medium">{p.name}</p>
+                      <p className="font-medium break-words">{p.name}</p>
                       <p className="text-xs text-brand-muted">
                         Qty {p.quantity} · {formatBDT(p.price)}
                       </p>
@@ -394,15 +400,17 @@ const ReferralsTab = () => {
                   </li>
                 ))}
               </ul>
-              <div className="flex justify-between items-center text-sm pt-2 border-t border-brand-border gap-3">
+              <div className="flex justify-between items-center text-sm pt-2 border-t border-brand-border gap-3 min-w-0">
                 <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${
+                  className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize shrink-0 ${
                     ORDER_STATUS_COLORS[r.status] || 'bg-neutral-100 text-neutral-700'
                   }`}
                 >
                   {r.status}
                 </span>
-                <span className="font-semibold text-brand-gold">{formatBDT(r.total)}</span>
+                <span className="font-semibold text-brand-gold shrink-0">
+                  {formatBDT(r.total)}
+                </span>
               </div>
               <DeliveryTracker status={r.status} compact />
             </li>
@@ -427,33 +435,37 @@ const DashboardInner = () => {
       <Helmet>
         <title>Dashboard — Nogor Car</title>
       </Helmet>
-      <div className="pt-6 pb-16">
-        <div className="container-uc px-4 sm:px-6 lg:px-8">
-          <h1 className="font-display text-4xl mb-2">Hello, {user?.name?.split(' ')[0]}</h1>
-          <p className="text-brand-muted mb-8">Manage your account and orders</p>
+      <div className="pt-6 pb-16 w-full min-w-0 overflow-x-hidden">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 w-full min-w-0">
+          <h1 className="font-display text-2xl sm:text-4xl mb-2 break-words">
+            Hello, {user?.name?.split(' ')[0]}
+          </h1>
+          <p className="text-brand-muted mb-6 sm:mb-8">Manage your account and orders</p>
 
-          <div className="grid lg:grid-cols-4 gap-8">
-            <aside className="space-y-1 h-fit">
-              <NavLink to="/dashboard" end className={navClass}>
-                <User size={16} /> Profile
-              </NavLink>
-              <NavLink to="/dashboard/orders" className={navClass}>
-                <Package size={16} /> My Orders
-              </NavLink>
-              <NavLink to="/dashboard/referrals" className={navClass}>
-                <Users size={16} /> Referrals
-              </NavLink>
-              <button
-                onClick={() => {
-                  logout();
-                  navigate('/');
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 w-full"
-              >
-                <LogOut size={16} /> Logout
-              </button>
+          <div className="grid lg:grid-cols-4 gap-4 sm:gap-8 min-w-0">
+            <aside className="space-y-1 h-fit min-w-0 overflow-x-auto">
+              <div className="flex lg:flex-col gap-1 min-w-0">
+                <NavLink to="/dashboard" end className={navClass}>
+                  <User size={16} className="shrink-0" /> Profile
+                </NavLink>
+                <NavLink to="/dashboard/orders" className={navClass}>
+                  <Package size={16} className="shrink-0" /> My Orders
+                </NavLink>
+                <NavLink to="/dashboard/referrals" className={navClass}>
+                  <Users size={16} className="shrink-0" /> Referrals
+                </NavLink>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 shrink-0 lg:w-full"
+                >
+                  <LogOut size={16} className="shrink-0" /> Logout
+                </button>
+              </div>
             </aside>
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-3 min-w-0 overflow-x-hidden">
               <Routes>
                 <Route index element={<ProfileTab />} />
                 <Route path="orders" element={<OrdersTab />} />

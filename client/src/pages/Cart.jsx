@@ -40,10 +40,10 @@ const Cart = () => {
       <Helmet>
         <title>Cart — Nogor Car</title>
       </Helmet>
-      <div className="pt-6 pb-16">
-        <div className="container-uc px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="font-display text-4xl">Shopping Cart</h1>
+      <div className="pt-6 pb-16 w-full min-w-0 overflow-x-hidden">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="flex items-center justify-between gap-3 mb-8 min-w-0">
+            <h1 className="font-display text-2xl sm:text-4xl min-w-0">Shopping Cart</h1>
             <button
               onClick={clear}
               className="text-sm text-red-600 hover:underline flex items-center gap-1"

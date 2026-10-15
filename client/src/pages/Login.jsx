@@ -44,8 +44,8 @@ const Login = () => {
       <Helmet>
         <title>Login — Nogor Car</title>
       </Helmet>
-      <div className="min-h-screen flex items-center justify-center px-4 py-16 bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.12),_transparent_50%)]">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden flex items-center justify-center px-4 py-16 bg-[radial-gradient(ellipse_at_top,_rgba(201,162,39,0.12),_transparent_50%)]">
+        <div className="w-full max-w-md min-w-0">
           <div className="text-center mb-8">
             <Logo size="sm" align="center" />
             <h1 className="font-display text-3xl mt-6 mb-2">Welcome Back</h1>

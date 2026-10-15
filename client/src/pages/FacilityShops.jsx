@@ -94,7 +94,7 @@ const FacilityShops = () => {
         <title>{facility.name} — Partner shops</title>
       </Helmet>
       <div className="pt-8 pb-20">
-        <div className="container-uc px-4 sm:px-6 lg:px-8 max-w-2xl">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 max-w-2xl w-full min-w-0 overflow-x-hidden">
           <Link
             to="/"
             className="inline-flex items-center gap-1.5 text-sm text-brand-muted hover:text-brand-black mb-8 transition"

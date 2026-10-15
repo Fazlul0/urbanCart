@@ -245,8 +245,8 @@ const Products = ({ productType = 'general' }) => {
         <title>{pageTitle} — Nogor Car</title>
       </Helmet>
 
-      <div className="pt-6 pb-16">
-        <div className="container-uc px-4 sm:px-6 lg:px-8">
+      <div className="pt-6 pb-16 w-full min-w-0 overflow-x-hidden">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 w-full min-w-0">
           <div className="mb-8">
             <h1 className="font-display text-4xl md:text-5xl mb-2">{pageTitle}</h1>
             <p className="text-brand-muted">

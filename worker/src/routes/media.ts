@@ -51,12 +51,28 @@ media.post('/upload', protect, async (c) => {
     );
   }
 
-  const fallbackExt = isVideo ? 'mp4' : 'jpg';
-  const ext = file.name.split('.').pop()?.toLowerCase() || fallbackExt;
+  const typeToExt: Record<string, string> = {
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'video/mp4': 'mp4',
+    'video/webm': 'webm',
+  };
+  const nameExt = file.name.split('.').pop()?.toLowerCase();
+  const safeNameExt =
+    nameExt && ['png', 'jpg', 'jpeg', 'webp', 'gif', 'mp4', 'webm'].includes(nameExt)
+      ? nameExt === 'jpeg'
+        ? 'jpg'
+        : nameExt
+      : '';
+  const ext = typeToExt[file.type] || safeNameExt || (isVideo ? 'mp4' : 'jpg');
+  const contentType = file.type || (ext === 'png' ? 'image/png' : isVideo ? 'video/mp4' : 'image/jpeg');
   const key = `uploads/${Date.now()}-${uid().slice(0, 8)}.${ext}`;
 
   await c.env.MEDIA.put(key, await file.arrayBuffer(), {
-    httpMetadata: { contentType: file.type },
+    httpMetadata: { contentType },
   });
 
   const origin = new URL(c.req.url).origin;

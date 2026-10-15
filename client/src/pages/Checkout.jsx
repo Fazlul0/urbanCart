@@ -14,15 +14,12 @@ const CheckoutForm = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const storedRef = getStoredReferral() || user?.referredBy || '';
-  const referralApplied = Boolean(storedRef);
   const [form, setForm] = useState({
     fullName: user?.address?.fullName || user?.name || '',
     mobile: user?.address?.mobile || user?.mobile || '',
     fullAddress: user?.address?.fullAddress || '',
     district: user?.address?.district || '',
     area: user?.address?.area || '',
-    referenceNumber: storedRef || user?.address?.referenceNumber || '',
     orderNotes: '',
   });
 
@@ -36,11 +33,9 @@ const CheckoutForm = () => {
     }
     setLoading(true);
     try {
+      const referralSource = user?.referredBy || getStoredReferral() || '';
       const referenceNumber =
-        normalizeReferralMobile(
-          user?.referredBy || getStoredReferral() || form.referenceNumber || ''
-        ) ||
-        String(user?.referredBy || getStoredReferral() || form.referenceNumber || '').trim();
+        normalizeReferralMobile(referralSource) || String(referralSource).trim();
       const res = await createOrder({
         deliveryAddress: {
           fullName: form.fullName,
@@ -48,11 +43,11 @@ const CheckoutForm = () => {
           fullAddress: form.fullAddress,
           district: form.district,
           area: form.area,
-          referenceNumber,
+          ...(referenceNumber ? { referenceNumber } : {}),
         },
         orderNotes: form.orderNotes,
         paymentMethod: 'cash_on_delivery',
-        referralCode: referenceNumber,
+        ...(referenceNumber ? { referralCode: referenceNumber } : {}),
       });
       await fetchCart();
       toast.success('Order placed successfully!');
@@ -80,8 +75,8 @@ const CheckoutForm = () => {
       <Helmet>
         <title>Checkout — Nogor Car</title>
       </Helmet>
-      <div className="pt-6 pb-16">
-        <div className="container-uc px-4 sm:px-6 lg:px-8">
+      <div className="pt-6 pb-16 w-full min-w-0 overflow-x-hidden">
+        <div className="container-uc px-3 sm:px-6 lg:px-8 w-full min-w-0">
           <h1 className="font-display text-4xl mb-8">Checkout</h1>
           <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
@@ -121,7 +116,7 @@ const CheckoutForm = () => {
                     className="input-field resize-none"
                   />
                 </div>
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">District *</label>
                     <input
@@ -140,29 +135,6 @@ const CheckoutForm = () => {
                       value={form.area}
                       onChange={onChange}
                       className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1.5 block">
-                      Reference / Referral number
-                      {referralApplied ? (
-                        <span className="ml-1.5 text-xs font-normal text-emerald-700">
-                          Referral applied
-                        </span>
-                      ) : (
-                        <span className="ml-1.5 text-xs font-normal text-brand-muted">
-                          (optional)
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      name="referenceNumber"
-                      value={form.referenceNumber}
-                      onChange={onChange}
-                      className={`input-field ${referralApplied ? 'bg-neutral-50' : ''}`}
-                      placeholder="01XXXXXXXXX"
-                      inputMode="tel"
-                      readOnly={referralApplied}
                     />
                   </div>
                 </div>

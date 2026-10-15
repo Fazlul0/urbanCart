@@ -59,22 +59,21 @@ const SiteSettings = () => {
     }));
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!form.siteName.trim()) {
+  const persistSettings = async (next, { silent } = {}) => {
+    if (!next.siteName.trim()) {
       toast.error('Site name is required');
-      return;
+      return false;
     }
-    const footerLinks = form.footerLinks
+    const footerLinks = next.footerLinks
       .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
       .filter((l) => l.label && l.url);
     setSaving(true);
     try {
       const res = await updateSiteSettings({
-        siteName: form.siteName.trim(),
-        logoUrl: form.logoUrl,
-        tagline: form.tagline.trim(),
-        deliveryCharge: Number(form.deliveryCharge) || 0,
+        siteName: next.siteName.trim(),
+        logoUrl: next.logoUrl || '',
+        tagline: next.tagline.trim(),
+        deliveryCharge: Number(next.deliveryCharge) || 0,
         footerLinks,
       });
       const s = res.data.settings;
@@ -88,12 +87,33 @@ const SiteSettings = () => {
             ? s.footerLinks
             : [emptyLink()],
       });
-      toast.success('Site settings saved');
+      if (!silent) toast.success('Site settings saved');
+      else toast.success('Logo updated on store');
+      return true;
     } catch (err) {
       toast.error(err.response?.data?.message || 'Save failed');
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    await persistSettings(form);
+  };
+
+  const handleLogoUploaded = async (url) => {
+    const next = { ...form, logoUrl: url };
+    setForm(next);
+    // Persist immediately so storefront picks up the new logo without a second Save click
+    await persistSettings(next, { silent: true });
+  };
+
+  const handleLogoRemove = async () => {
+    const next = { ...form, logoUrl: '' };
+    setForm(next);
+    await persistSettings(next, { silent: true });
   };
 
   if (loading) {
@@ -158,15 +178,20 @@ const SiteSettings = () => {
               previewFit="contain"
               label={form.logoUrl ? 'Replace logo' : 'Upload logo'}
               value={form.logoUrl}
-              onUploaded={(url) => setForm({ ...form, logoUrl: url })}
+              onUploaded={handleLogoUploaded}
             />
+            <p className="text-[11px] text-neutral-500">
+              Transparent PNG recommended. Logo is saved as soon as upload finishes and shows on the
+              live store (refresh the store page).
+            </p>
             {form.logoUrl && (
               <button
                 type="button"
                 className="text-xs text-red-600"
-                onClick={() => setForm({ ...form, logoUrl: '' })}
+                onClick={handleLogoRemove}
+                disabled={saving}
               >
-                Remove logo (use initials)
+                Remove logo (use default)
               </button>
             )}
           </div>
@@ -176,10 +201,20 @@ const SiteSettings = () => {
             <div className="card p-5 bg-white">
               <div className="flex items-center gap-2.5">
                 {form.logoUrl ? (
-                  <img src={form.logoUrl} alt="" className="w-10 h-10 rounded-lg object-contain" />
+                  <div
+                    className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(45deg,#e5e5e5 25%,transparent 25%),linear-gradient(-45deg,#e5e5e5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e5e5 75%),linear-gradient(-45deg,transparent 75%,#e5e5e5 75%)',
+                      backgroundSize: '12px 12px',
+                      backgroundPosition: '0 0,0 6px,6px -6px,-6px 0',
+                    }}
+                  >
+                    <img src={form.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                  </div>
                 ) : (
-                  <div className="w-10 h-10 rounded-lg bg-brand-black text-brand-gold flex items-center justify-center font-bold text-sm">
-                    {initials || 'UC'}
+                  <div className="w-14 h-14 rounded-lg bg-brand-black text-brand-gold flex items-center justify-center font-bold text-sm">
+                    {initials || 'NC'}
                   </div>
                 )}
                 <span className="font-semibold text-lg">{form.siteName || 'Site name'}</span>
@@ -188,7 +223,11 @@ const SiteSettings = () => {
             <div className="card overflow-hidden bg-brand-black text-white p-6">
               <div className="flex items-center gap-3 mb-3">
                 {form.logoUrl && (
-                  <img src={form.logoUrl} alt="" className="w-10 h-10 rounded-lg object-contain" />
+                  <img
+                    src={form.logoUrl}
+                    alt=""
+                    className="h-12 w-auto max-w-[10rem] object-contain"
+                  />
                 )}
                 <p className="text-2xl font-semibold">{form.siteName || 'Site name'}</p>
               </div>

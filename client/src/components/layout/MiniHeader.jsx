@@ -13,21 +13,23 @@ const MiniHeader = () => {
   if (pathname === '/') return null;
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-brand-border/80">
-      <div className="container-uc px-3 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-3 overflow-hidden">
-        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-          <Logo size="header" />
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-brand-border/80 w-full max-w-[100vw] overflow-x-hidden">
+      <div className="container-uc px-2 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between gap-1.5 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1 overflow-hidden">
+          <div className="flex items-center h-8 sm:h-9 max-w-[4.5rem] sm:max-w-[7rem] overflow-hidden shrink-0">
+            <Logo size="header" />
+          </div>
           <nav className="flex items-center shrink-0">
             <Link
               to="/products"
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-sm font-semibold transition ${
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-sm font-semibold transition ${
                 pathname === '/products' || pathname.startsWith('/products/')
                   ? 'bg-brand-black text-white'
                   : 'bg-neutral-100 text-brand-black hover:bg-brand-gold/20'
               }`}
             >
               <ShoppingBag size={13} className="shrink-0" />
-              Products
+              <span className="hidden sm:inline">Products</span>
             </Link>
           </nav>
         </div>

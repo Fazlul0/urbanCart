@@ -20,7 +20,7 @@ const DeliveryTracker = ({ status, compact = false }) => {
 
   return (
     <div
-      className={`w-full ${compact ? 'py-1' : 'py-2'}`}
+      className={`w-full max-w-full min-w-0 overflow-hidden ${compact ? 'py-1' : 'py-2'}`}
       role="img"
       aria-label={
         cancelled
@@ -28,13 +28,13 @@ const DeliveryTracker = ({ status, compact = false }) => {
           : `Delivery progress: ${STEPS[active]?.label || status}`
       }
     >
-      {/* Car lane */}
-      <div className={`relative ${compact ? 'h-5 mb-1' : 'h-6 mb-1.5'}`}>
+      {/* Car lane — padded so the car never overflows the screen */}
+      <div className={`relative overflow-hidden ${compact ? 'h-5 mb-1' : 'h-6 mb-1.5'}`}>
         {!cancelled && (
           <motion.div
             className="absolute top-0"
             initial={false}
-            animate={{ left: `${progress * 100}%` }}
+            animate={{ left: `calc(${progress * 100}% * 0.92 + 4%)` }}
             transition={{ type: 'spring', stiffness: 90, damping: 18 }}
             style={{ x: '-50%' }}
           >
@@ -71,7 +71,7 @@ const DeliveryTracker = ({ status, compact = false }) => {
       </div>
 
       {/* Track + dots */}
-      <div className="relative mx-1">
+      <div className="relative mx-0.5 sm:mx-1 overflow-hidden">
         <div className="h-1.5 rounded-full bg-brand-border overflow-hidden">
           <motion.div
             className={`h-full rounded-full ${cancelled ? 'bg-red-400' : 'bg-brand-gold'}`}
@@ -80,13 +80,13 @@ const DeliveryTracker = ({ status, compact = false }) => {
             transition={{ type: 'spring', stiffness: 120, damping: 20 }}
           />
         </div>
-        <div className="absolute inset-x-0 top-1/2 flex justify-between pointer-events-none">
+        <div className="absolute inset-x-0 top-1/2 flex justify-between pointer-events-none px-0.5">
           {STEPS.map((step, i) => {
             const done = !cancelled && i <= active;
             return (
               <span
                 key={step.key}
-                className={`block rounded-full border-2 -translate-y-1/2 ${
+                className={`block rounded-full border-2 -translate-y-1/2 shrink-0 ${
                   compact ? 'w-2.5 h-2.5' : 'w-3 h-3'
                 } ${
                   cancelled
@@ -102,15 +102,15 @@ const DeliveryTracker = ({ status, compact = false }) => {
       </div>
 
       {/* Labels */}
-      <div className={`flex justify-between gap-1 ${compact ? 'mt-2' : 'mt-3'}`}>
+      <div className={`flex justify-between gap-0.5 sm:gap-1 min-w-0 ${compact ? 'mt-2' : 'mt-3'}`}>
         {STEPS.map((step, i) => {
           const done = !cancelled && i <= active;
           const current = !cancelled && i === active;
           return (
             <span
               key={step.key}
-              className={`text-center flex-1 leading-tight ${
-                compact ? 'text-[9px]' : 'text-[10px] sm:text-xs'
+              className={`text-center flex-1 min-w-0 leading-tight break-words ${
+                compact ? 'text-[8px] sm:text-[9px]' : 'text-[9px] sm:text-xs'
               } ${
                 cancelled
                   ? 'text-brand-muted/50'
